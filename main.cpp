@@ -37,7 +37,7 @@ b[3] = a[3] ^ a[8] ^ a[13] ^ a[18] ^ a[23]; \
 b[4] = a[4] ^ a[9] ^ a[14] ^ a[19] ^ a[24]; \
 THETA_(4, 1, 0); THETA_(0, 2, 1); THETA_(1, 3, 2); THETA_(2, 4, 3); THETA_(3, 0, 4);
 
-#define RHO_PI_(M, N) t = b[0]; b[0] = a[M]; a[M] = ROL(t, N); \
+#define RHO_PI_(M, N) t = b[0]; b[0] = a[M]; a[M] = ROL(t, N);
 
 #define RHO_PI() t = a[1]; b[0] = a[10]; a[10] = ROL1(t); \
 RHO_PI_(7, 3); RHO_PI_(11, 6); RHO_PI_(17, 10); RHO_PI_(18, 15); RHO_PI_(3, 21); RHO_PI_(5, 28); \
