@@ -2,7 +2,7 @@
 
 Simple and fast Solidity function selector miner (CPU based).
 
-If Rust is considered blazingly fast, this C++ implementation is 40% faster.
+If Rust is considered blazingly fast, this C++ implementation is 60% faster.
 
 Should take under a minute with a core i7-12700F.
 
