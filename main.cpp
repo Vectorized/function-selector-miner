@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <cstring>
 #include <stdint.h>
 #include <omp.h>
 
@@ -58,7 +59,7 @@ a[N + 4] = b[4] ^ ((~b[0]) & b[1]);
 
 #define ITER(X) THETA(); RHO_PI(); CHI(); IOTA(X);
 
-static inline uint32_t functionSelector(uint64_t *a)
+inline uint32_t functionSelector(uint64_t *a)
 {
     uint64_t b[5], t;
 
@@ -87,8 +88,20 @@ static inline uint32_t functionSelector(uint64_t *a)
     ITER(0x0000000080000001);
     ITER(0x8000000080008008);
 
-    uint8_t *o = (uint8_t *)a;
-    return ((uint32_t) o[0] << 24) | ((uint32_t) o[1] << 16) | ((uint32_t) o[2] << 8) | ((uint32_t) o[3]);
+    uint32_t result;
+    memcpy(&result, a, 4);
+    return result;
+}
+
+inline uint32_t normalizeEndianess(uint32_t x)
+{
+    union {
+        uint32_t i;
+        char c[4];
+    } bint = {0x01020304};
+    if (bint.c[0] == 1) return x;
+    x = ((x >> 8) & 0x00FF00FF) | ((x & 0x00FF00FF) << 8);
+    return (x >> 16) | (x << 16);    
 }
 
 inline char * fillSponge(char *sponge, const std::string &s)
@@ -117,18 +130,23 @@ int main(int argc, char * argv[])
         return -1;
     }
 
-    const uint32_t selector = std::stol(argv[3], nullptr, 16);
+    const uint32_t selector = normalizeEndianess(std::stol(argv[3], nullptr, 16));
     const std::string functionName(argv[1]);
     const std::string functionParams(argv[2]);
 
-    if (functionName.size() + functionParams.size() > 114) {
-        std::cout << "Total length of <function name> and <function params> must be under 114 bytes.";
+    if (functionName.size() + functionParams.size() >= 115) {
+        std::cout << "Total length of <function name> and <function params> must be under 115 bytes.";
+        return -1;
+    }
+
+    if (sizeof(char) != 1 || sizeof(uint64_t) != 8) {
+        std::cout << "Incompatible architecture\n";
         return -1;
     }
 
     std::cout << "Function name: " << argv[1] << "\n";
     std::cout << "Function params: " << argv[2] << "\n";
-    std::cout << "Target selector: " << functionSelectorToHex(selector) << "\n";
+    std::cout << "Target selector: " << functionSelectorToHex(normalizeEndianess(selector)) << "\n";
     
     bool go = true;
 
@@ -141,13 +159,15 @@ int main(int argc, char * argv[])
     for (uint64_t t = 0; t < numThreads; ++t) {
         uint64_t i = 0;
         for (uint64_t nonce = t; nonce < end && go; nonce += numThreads) {
-            uint64_t spongeBuffer[25];
-            char *sponge = (char *) spongeBuffer;
-            *fillSponge(sponge, functionName, nonce, functionParams) = 0x01u;
-            uint32_t computed = functionSelector(spongeBuffer);
+            union {
+                uint64_t uint64s[25];
+                char chars[200];
+            } sponge;
+            *fillSponge(sponge.chars, functionName, nonce, functionParams) = 0x01u;
+            uint32_t computed = functionSelector(sponge.uint64s);
             if (computed == selector) {
-                *fillSponge(sponge, functionName, nonce, functionParams) = 0x00u;
-                std::cout << "Function found: " << sponge << "\n";
+                *fillSponge(sponge.chars, functionName, nonce, functionParams) = 0x00u;
+                std::cout << "Function found: " << sponge.chars << "\n";
                 go = false;
             }
             if (t == 0) if ((++i & 0x3fffff) == 0) std::cout << nonce << " hashes done.\n";
