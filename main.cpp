@@ -9,11 +9,10 @@
 
 inline char* writeDecimal(char* out, uint64_t x)
 {
-    char buff[32], *end = buff + 32, *p = end;
+    char buff[64], *end = buff + 32, *p = end;
     do { *(--p) = (x % 10) + 48; } while (x /= 10);
-    const uint64_t n = end - p;
-    for (uint64_t i = 0; i < n; ++i) out[i] = p[i];
-    return out + n;
+    memcpy(out, p, 32);
+    return out + (end - p);
 }
 
 inline std::string functionSelectorToHex(uint32_t x)
@@ -59,38 +58,34 @@ a[N + 4] = b[4] ^ ((~b[0]) & b[1]);
 
 #define ITER(X) THETA(); RHO_PI(); CHI(); IOTA(X);
 
-inline uint32_t functionSelector(uint64_t *a)
-{
-    uint64_t b[5], t;
-
-    ITER(0x0000000000000001);
-    ITER(0x0000000000008082);
-    ITER(0x800000000000808a);
-    ITER(0x8000000080008000);
-    ITER(0x000000000000808b);
-    ITER(0x0000000080000001);
-    ITER(0x8000000080008081);
-    ITER(0x8000000000008009);
-    ITER(0x000000000000008a);
-    ITER(0x0000000000000088);
-    ITER(0x0000000080008009);
-    ITER(0x000000008000000a);
-    ITER(0x000000008000808b);
-    ITER(0x800000000000008b);
-    ITER(0x8000000000008089);
-    ITER(0x8000000000008003);
-    ITER(0x8000000000008002);
-    ITER(0x8000000000000080);
-    ITER(0x000000000000800a);
-    ITER(0x800000008000000a);
-    ITER(0x8000000080008081);
-    ITER(0x8000000000008080);
-    ITER(0x0000000080000001);
-    ITER(0x8000000080008008);
-
-    uint32_t result;
-    memcpy(&result, a, 4);
-    return result;
+#define COMPUTE_FUNCTION_SELECTOR(RESULT, SPONGE) \
+{\
+    uint64_t *a = SPONGE, b[5], t; \
+    ITER(0x0000000000000001); \
+    ITER(0x0000000000008082); \
+    ITER(0x800000000000808a); \
+    ITER(0x8000000080008000); \
+    ITER(0x000000000000808b); \
+    ITER(0x0000000080000001); \
+    ITER(0x8000000080008081); \
+    ITER(0x8000000000008009); \
+    ITER(0x000000000000008a); \
+    ITER(0x0000000000000088); \
+    ITER(0x0000000080008009); \
+    ITER(0x000000008000000a); \
+    ITER(0x000000008000808b); \
+    ITER(0x800000000000008b); \
+    ITER(0x8000000000008089); \
+    ITER(0x8000000000008003); \
+    ITER(0x8000000000008002); \
+    ITER(0x8000000000000080); \
+    ITER(0x000000000000800a); \
+    ITER(0x800000008000000a); \
+    ITER(0x8000000080008081); \
+    ITER(0x8000000000008080); \
+    ITER(0x0000000080000001); \
+    ITER(0x8000000080008008); \
+    memcpy(&RESULT, a, 4); \
 }
 
 inline uint32_t normalizeEndianess(uint32_t x)
@@ -104,14 +99,25 @@ inline uint32_t normalizeEndianess(uint32_t x)
     return (x >> 16) | (x << 16);    
 }
 
-inline char * fillSponge(char *sponge, const std::string &s)
+struct SmallString
 {
-    uint64_t n = s.size();
-    for (uint64_t i = 0; i < n; ++i) sponge[i] = s[i];
-    return sponge + n;
+    char data[128];
+    uint64_t length;
+
+    inline SmallString(const char *s)
+    {
+        length = strlen(s);
+        if (length < 128) strcpy(data, s);
+    }
+};
+
+inline char * fillSponge(char *sponge, const SmallString &s)
+{
+    memcpy(sponge, s.data, s.length);
+    return sponge + s.length;
 }
 
-inline char * fillSponge(char *sponge, const std::string &functionName, uint64_t nonce, const std::string &functionParams)
+inline char * fillSponge(char *sponge, const SmallString &functionName, uint64_t nonce, const SmallString &functionParams)
 {
     char *o = sponge;
     o = fillSponge(o, functionName);
@@ -131,10 +137,10 @@ int main(int argc, char * argv[])
     }
 
     const uint32_t selector = normalizeEndianess(std::stol(argv[3], nullptr, 16));
-    const std::string functionName(argv[1]);
-    const std::string functionParams(argv[2]);
+    const SmallString functionName(argv[1]);
+    const SmallString functionParams(argv[2]);
 
-    if (functionName.size() + functionParams.size() >= 115) {
+    if (functionName.length + functionParams.length >= 115) {
         std::cout << "Total length of <function name> and <function params> must be under 115 bytes.";
         return -1;
     }
@@ -164,7 +170,8 @@ int main(int argc, char * argv[])
                 char chars[200];
             } sponge;
             *fillSponge(sponge.chars, functionName, nonce, functionParams) = 0x01u;
-            uint32_t computed = functionSelector(sponge.uint64s);
+            uint32_t computed;
+            COMPUTE_FUNCTION_SELECTOR(computed, sponge.uint64s);
             if (computed == selector) {
                 *fillSponge(sponge.chars, functionName, nonce, functionParams) = 0x00u;
                 std::cout << "Function found: " << sponge.chars << "\n";
