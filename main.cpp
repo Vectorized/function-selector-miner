@@ -59,7 +59,7 @@ a[N + 4] = b[4] ^ ((~b[0]) & b[1]);
 #define ITER(X) THETA(); RHO_PI(); CHI(); IOTA(X);
 
 #define COMPUTE_FUNCTION_SELECTOR(RESULT, SPONGE) \
-{\
+{ \
     uint64_t *a = SPONGE, b[5], t; \
     ITER(0x0000000000000001); \
     ITER(0x0000000000008082); \
