@@ -28,7 +28,6 @@ fn main() {
 
     if std::mem::size_of::<u64>() != 8 {
         println!("Incompatible architecture");
-        println!("char: {}", std::mem::size_of::<char>());
         println!("u64: {}", std::mem::size_of::<u64>());
         process::exit(-1);
     }
@@ -40,15 +39,13 @@ fn main() {
         function_selector_to_hex(normalize_endianess(selector))
     );
 
-    union Sponge {
-        uint64s: [u64; 25],
-        chars: [u8; 200],
-    }
-
     let num_threads = num_cpus::get();
     let end = 0xfffffffff0000000usize;
     let go = std::sync::atomic::AtomicBool::new(true);
 
+    #[cfg(target_feature = "avx2")]
+    const STEP: usize = 1;
+    #[cfg(not(target_feature = "avx2"))]
     const STEP: usize = 1;
 
     println!("Starting mining with {num_threads} threads.");
@@ -60,34 +57,25 @@ fn main() {
                 break;
             }
 
-            let mut s0 = Sponge {
-                uint64s: [0u64; 25],
-            };
+            // #[cfg(not(target_feature = "avx2"))]
+            {
+                let mut s0 = Sponge::default();
 
-            let o = fill_sponge(
-                unsafe { &mut s0.chars },
-                &function_name,
-                nonce as u64,
-                &function_params,
-            );
-            unsafe { s0.chars[o] = 0x01 };
+                let o = unsafe { s0.fill_sponge(&function_name, nonce as u64, &function_params) };
+                unsafe { s0.chars[o] = 0x01 };
 
-            let c0 = compute_selectors(unsafe { &mut s0.uint64s });
-            if c0 == selector {
-                fill_sponge(
-                    unsafe { &mut s0.chars },
-                    &function_name,
-                    nonce as u64,
-                    &function_params,
-                );
-                unsafe { s0.chars[o] = 0x00 };
+                let c0 = unsafe { s0.compute_selectors() };
+                if c0 == selector {
+                    unsafe { s0.fill_sponge(&function_name, nonce as u64, &function_params) };
+                    unsafe { s0.chars[o] = 0x00 };
 
-                let mut out = [0u8; 200];
-                out[..o].copy_from_slice(unsafe { &s0.chars[..o] });
-                let out = unsafe { str::from_utf8_unchecked(&out) };
-                println!("Function found: {}", out);
+                    let mut out = [0u8; 200];
+                    out[..o].copy_from_slice(unsafe { &s0.chars[..o] });
+                    let out = unsafe { str::from_utf8_unchecked(&out) };
+                    println!("Function found: {}", out);
 
-                go.store(false, std::sync::atomic::Ordering::Relaxed);
+                    go.store(false, std::sync::atomic::Ordering::Relaxed);
+                }
             }
 
             // Progress logging for thread 0
