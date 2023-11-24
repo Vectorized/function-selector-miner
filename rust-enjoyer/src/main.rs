@@ -1,6 +1,3 @@
-use std::convert::TryInto;
-use std::fs;
-use std::io::{self, Write};
 use std::str;
 
 fn write_decimal(out: &mut [u8], mut x: u64) -> usize {
@@ -23,33 +20,39 @@ fn function_selector_to_hex(x: u32) -> String {
     format!("0x{:0width$x}", x, width = std::mem::size_of::<u32>() * 2)
 }
 
-#[cfg(target_feature = "avx2")]
+// #[cfg(target_feature = "avx2")]
 use std::arch::x86_64::*;
 
-#[cfg(target_feature = "avx2")]
-struct V {
-    v: __m256i,
-}
+// #[cfg(target_feature = "avx2")]
+// fn theta_avx2(a: &mut [u64; 25], b: &mut [u64; 5]) {
+fn theta_avx2(a: &mut [u64; 25], b: &mut [u64; 5]) {
+    unsafe {
+        // Step 1: Load `a` elements into AVX2 registers and compute XORs
+        let mut avx_b = [_mm256_setzero_si256(); 5];
 
-#[cfg(target_feature = "avx2")]
-impl V {
-    fn new(v0: u64, v1: u64, v2: u64, v3: u64) -> V {
-        V {
-            v: unsafe {
-                _mm256_set_epi64x(
-                    v3.try_into().unwrap(),
-                    v2.try_into().unwrap(),
-                    v1.try_into().unwrap(),
-                    v0.try_into().unwrap(),
-                )
-            },
+        for i in 0..5 {
+            avx_b[0] = _mm256_xor_si256(avx_b[0], _mm256_set1_epi64x(a[i] as i64));
+            avx_b[1] = _mm256_xor_si256(avx_b[1], _mm256_set1_epi64x(a[i + 5] as i64));
+            avx_b[2] = _mm256_xor_si256(avx_b[2], _mm256_set1_epi64x(a[i + 10] as i64));
+            avx_b[3] = _mm256_xor_si256(avx_b[3], _mm256_set1_epi64x(a[i + 15] as i64));
+            avx_b[4] = _mm256_xor_si256(avx_b[4], _mm256_set1_epi64x(a[i + 20] as i64));
+        }
+
+        // Store results back to `b`
+        for i in 0..5 {
+            b[i] = _mm256_extract_epi64(avx_b[i], 0) as u64;
+        }
+
+        // Part 2: Apply theta_ logic
+        for i in 0..5 {
+            //
         }
     }
 }
 
 const ROL: fn(u64, u32) -> u64 = |x, s| x.rotate_left(s);
 
-fn theta_(a: &mut [u64], b: &[u64], m: usize, n: usize, o: usize) {
+fn theta_(a: &mut [u64; 25], b: &[u64; 5], m: usize, n: usize, o: usize) {
     let t = b[m] ^ ROL(b[n], 1);
     a[o + 0] ^= t;
     a[o + 5] ^= t;
@@ -58,7 +61,7 @@ fn theta_(a: &mut [u64], b: &[u64], m: usize, n: usize, o: usize) {
     a[o + 20] ^= t;
 }
 
-fn theta(a: &mut [u64], b: &mut [u64]) {
+fn theta(a: &mut [u64; 25], b: &mut [u64; 5]) {
     assert!(a.len() >= 25, "Array 'a' must have at least 25 elements");
     assert!(b.len() >= 5, "Array 'b' must have at least 5 elements");
 
@@ -75,7 +78,7 @@ fn theta(a: &mut [u64], b: &mut [u64]) {
     theta_(a, b, 3, 0, 4);
 }
 
-fn rho_pi(a: &mut [u64], b: &mut [u64]) {
+fn rho_pi(a: &mut [u64; 25], b: &mut [u64; 5]) {
     let mut t = a[1];
     b[0] = a[10];
     a[10] = ROL(t, 1);
@@ -136,14 +139,15 @@ fn iota(a: &mut [u64], x: u64) {
     a[0] ^= x;
 }
 
-fn iter(a: &mut [u64], b: &mut [u64], x: u64) {
+fn iter(a: &mut [u64; 25], b: &mut [u64; 5], x: u64) {
+    // theta_avx2(a, b);
     theta(a, b);
     rho_pi(a, b);
     chi(a);
     iota(a, x);
 }
 
-fn iters(a: &mut [u64], b: &mut [u64]) {
+fn iters(a: &mut [u64; 25], b: &mut [u64; 5]) {
     iter(a, b, 0x0000000000000001);
     iter(a, b, 0x0000000000008082);
     iter(a, b, 0x800000000000808a);
@@ -213,7 +217,7 @@ fn fill_sponge(
     o
 }
 
-fn compute_selectors(sponge: &mut [u64]) -> u32 {
+fn compute_selectors(sponge: &mut [u64; 25]) -> u32 {
     let mut b = [0u64; 5];
     let mut t = 0u64;
 
@@ -227,6 +231,11 @@ use std::env;
 use std::process;
 
 fn main() {
+    #[cfg(target_feature = "avx2")]
+    println!("AVX2 enabled");
+    #[cfg(not(target_feature = "avx2"))]
+    println!("AVX2 disabled");
+
     let args: Vec<String> = env::args().collect();
     if args.len() < 4 {
         println!("Usage: <function name> <function params> <target selector>");
@@ -315,4 +324,42 @@ fn main() {
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_theta_equivalence() {
+        let mut a = [0u64; 25];
+        let mut b = [0u64; 5];
+
+        // Initialize `a` and `b` with some values
+        for i in 0..25 {
+            a[i] = i as u64;
+        }
+        for i in 0..5 {
+            b[i] = (i * 5) as u64;
+        }
+
+        let mut a_theta = a;
+        let mut b_theta = b;
+        theta(&mut a_theta, &mut b_theta);
+
+        #[cfg(target_feature = "avx2")]
+        {
+            let mut a_theta_avx2 = a;
+            let mut b_theta_avx2 = b;
+            theta_avx2(&mut a_theta_avx2, &mut b_theta_avx2);
+
+            assert_eq!(a_theta, a_theta_avx2);
+            assert_eq!(b_theta, b_theta_avx2);
+        }
+
+        #[cfg(not(target_feature = "avx2"))]
+        {
+            println!("AVX2 not enabled, skipping AVX2 test");
+        }
+    }
 }
