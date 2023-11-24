@@ -1,0 +1,1 @@
+g++ main.cpp -O3 -march=native -DNDEBUG -fopenmp -o function_selector_miner;

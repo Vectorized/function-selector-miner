@@ -2,9 +2,9 @@
 
 Simple and fast Solidity function selector miner (CPU based).
 
-If Rust is considered blazingly fast, this C++ implementation is 60% faster.
+Uses AVX2 instructions and multithreading to compute hashes in parallel.
 
-Should take under a minute with a core i7-12700F.
+Should be able to mine any selector under a minute with a core i7-12700F.
 
 ## Requirements
 
