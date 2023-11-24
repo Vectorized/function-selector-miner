@@ -74,7 +74,7 @@ inline V operator ~ (const V &a)
 
 #define ROL(X, S) (((X) << S) | ((X) >> (64 - S)))
 
-#if defined (__AVX512__)
+#if defined (__AVX512F__) && defined (__AVX512VL__)
 #undef ROL
 #define ROL(X, S) V(_mm256_rol_epi64((X).v, S))
 #endif
@@ -259,7 +259,7 @@ int main(int argc, char * argv[])
             COMPUTE_SELECTORS(c0, s0.uint64s);
             CHECK_SELECTOR(0)
 #endif
-            if (t == 0) if ((++i & 0x3fffff) == 0) std::cout << nonce << " hashes done.\n";
+            if (t == 0) if ((++i & 0x1fffff) == 0) std::cout << nonce << " hashes done.\n";
         }
     }
     return 0;
