@@ -4,7 +4,7 @@ Simple and fast Solidity function selector miner (CPU based).
 
 Uses AVX2 instructions and multithreading to compute hashes in parallel.
 
-Should be able to mine any selector under a minute with a core i7-12700F.
+Should be able to mine most selectors under a minute with a core i7-12700F.
 
 ## Requirements
 
