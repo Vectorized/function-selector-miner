@@ -99,17 +99,23 @@ where
         + BitOr<Output = T>
         + Copy,
 {
-    b[0] = a[0] ^ a[5] ^ a[10] ^ a[15] ^ a[20];
-    b[1] = a[1] ^ a[6] ^ a[11] ^ a[16] ^ a[21];
-    b[2] = a[2] ^ a[7] ^ a[12] ^ a[17] ^ a[22];
-    b[3] = a[3] ^ a[8] ^ a[13] ^ a[18] ^ a[23];
-    b[4] = a[4] ^ a[9] ^ a[14] ^ a[19] ^ a[24];
+    [
+        (0, 5, 10, 15, 20),
+        (1, 6, 11, 16, 21),
+        (2, 7, 12, 17, 22),
+        (3, 8, 13, 18, 23),
+        (4, 9, 14, 19, 24),
+    ]
+    .into_iter()
+    .for_each(|(i0, i1, i2, i3, i4)| {
+        b[i0] = a[i0] ^ a[i1] ^ a[i2] ^ a[i3] ^ a[i4];
+    });
 
-    theta_(a, b, 4, 1, 0);
-    theta_(a, b, 0, 2, 1);
-    theta_(a, b, 1, 3, 2);
-    theta_(a, b, 2, 4, 3);
-    theta_(a, b, 3, 0, 4);
+    [(4, 1, 0), (0, 2, 1), (1, 3, 2), (2, 4, 3), (3, 0, 4)]
+        .into_iter()
+        .for_each(|(m, n, o)| {
+            theta_(a, b, m, n, o);
+        });
 }
 
 fn rho_pi<T>(a: &mut [T; 25], b: &mut [T; 5])
@@ -119,29 +125,36 @@ where
     let t = a[1];
     b[0] = a[10];
     a[10] = rotate_left(t, 1);
-    rho_pi_(a, b, 7, 3);
-    rho_pi_(a, b, 11, 6);
-    rho_pi_(a, b, 17, 10);
-    rho_pi_(a, b, 18, 15);
-    rho_pi_(a, b, 3, 21);
-    rho_pi_(a, b, 5, 28);
-    rho_pi_(a, b, 16, 36);
-    rho_pi_(a, b, 8, 45);
-    rho_pi_(a, b, 21, 55);
-    rho_pi_(a, b, 24, 2);
-    rho_pi_(a, b, 4, 14);
-    rho_pi_(a, b, 15, 27);
-    rho_pi_(a, b, 23, 41);
-    rho_pi_(a, b, 19, 56);
-    rho_pi_(a, b, 13, 8);
-    rho_pi_(a, b, 12, 25);
-    rho_pi_(a, b, 2, 43);
-    rho_pi_(a, b, 20, 62);
-    rho_pi_(a, b, 14, 18);
-    rho_pi_(a, b, 22, 39);
-    rho_pi_(a, b, 9, 61);
-    rho_pi_(a, b, 6, 20);
-    rho_pi_(a, b, 1, 44);
+
+    [
+        (7, 3),
+        (11, 6),
+        (17, 10),
+        (18, 15),
+        (3, 21),
+        (5, 28),
+        (16, 36),
+        (8, 45),
+        (21, 55),
+        (24, 2),
+        (4, 14),
+        (15, 27),
+        (23, 41),
+        (19, 56),
+        (13, 8),
+        (12, 25),
+        (2, 43),
+        (20, 62),
+        (14, 18),
+        (22, 39),
+        (9, 61),
+        (6, 20),
+        (1, 44),
+    ]
+    .into_iter()
+    .for_each(|(m, n)| {
+        rho_pi_(a, b, m, n);
+    });
 }
 
 fn rho_pi_<T>(a: &mut [T; 25], b: &mut [T; 5], m: usize, n: u32)
@@ -165,22 +178,19 @@ where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Default + Copy,
 {
     let mut b = [T::default(); 5];
-    chi_(a, &mut b, 0);
-    chi_(a, &mut b, 5);
-    chi_(a, &mut b, 10);
-    chi_(a, &mut b, 15);
-    chi_(a, &mut b, 20);
+    [0, 5, 10, 15, 20].into_iter().for_each(|n| {
+        chi_(a, &mut b, n);
+    });
 }
 
-fn chi_<T>(a: &mut [T], b: &mut [T], n: usize)
+fn chi_<T>(a: &mut [T; 25], b: &mut [T; 5], n: usize)
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Copy,
 {
-    b[0] = a[n];
-    b[1] = a[n + 1];
-    b[2] = a[n + 2];
-    b[3] = a[n + 3];
-    b[4] = a[n + 4];
+    b.iter_mut()
+        .enumerate()
+        .for_each(|(idx, b_i)| *b_i = a[n + idx]);
+
     a[n] = b[0] ^ ((!b[1]) & b[2]);
     a[n + 1] = b[1] ^ ((!b[2]) & b[3]);
     a[n + 2] = b[2] ^ ((!b[3]) & b[4]);
