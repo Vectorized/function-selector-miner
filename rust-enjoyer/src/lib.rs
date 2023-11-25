@@ -79,7 +79,7 @@ where
     rho_pi_(a, b, 1, 44);
 }
 
-fn rho_pi_<T>(a: &mut [T], b: &mut [T], m: usize, n: u32)
+fn rho_pi_<T>(a: &mut [T; 25], b: &mut [T; 5], m: usize, n: u32)
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
 {
@@ -95,7 +95,7 @@ where
     (value << shift) | (value >> (64 - shift))
 }
 
-fn chi<T>(a: &mut [T])
+fn chi<T>(a: &mut [T; 25])
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Default + Copy,
 {
@@ -107,7 +107,7 @@ where
     chi_(a, &mut b, 20);
 }
 
-fn chi_<T>(a: &mut [T], b: &mut [T], n: usize)
+fn chi_<T>(a: &mut [T; 25], b: &mut [T; 5], n: usize)
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Copy,
 {
@@ -123,7 +123,7 @@ where
     a[n + 4] = b[4] ^ ((!b[0]) & b[1]);
 }
 
-fn iota<T, U>(a: &mut [T], x: U)
+fn iota<T, U>(a: &mut [T; 25], x: U)
 where
     T: BitXorAssign<U> + Copy,
 {
