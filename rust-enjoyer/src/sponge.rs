@@ -35,9 +35,7 @@ impl Sponge {
         let o = self.fill_sponge(function_name, nonce, function_params);
         self.chars[o] = 0x00;
 
-        let mut out = [0u8; 200];
-        out[..o].copy_from_slice(&self.chars[..o]);
-        str::from_utf8_unchecked(&out).to_owned()
+        str::from_utf8_unchecked(&self.chars[..o]).to_owned()
     }
 
     pub unsafe fn fill_sponge(
@@ -46,18 +44,18 @@ impl Sponge {
         nonce: u64,
         function_params: &SmallString,
     ) -> usize {
-        let mut o = Self::fill_sponge_single(&mut self.chars, function_name);
-        o += write_decimal(&mut self.chars[o..], nonce);
-        o += Self::fill_sponge_single(&mut self.chars[o..], function_params);
+        let mut offset = self.fill_sponge_single(0, function_name);
+        offset += write_decimal(&mut self.chars[offset..], nonce);
+        offset += self.fill_sponge_single(offset, function_params);
 
         let end = 200;
-        self.chars[o..end].fill(0);
+        self.chars[offset..end].fill(0);
         self.chars[135] = 0x80;
-        o
+        offset
     }
 
-    pub fn fill_sponge_single(sponge: &mut [u8], s: &SmallString) -> usize {
-        sponge[..s.length].copy_from_slice(&s.data[..s.length]);
+    pub unsafe fn fill_sponge_single(&mut self, offset: usize, s: &SmallString) -> usize {
+        self.chars[offset..][..s.length].copy_from_slice(&s.data[..s.length]);
         s.length
     }
 

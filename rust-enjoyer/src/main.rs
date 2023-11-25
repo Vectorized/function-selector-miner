@@ -1,9 +1,13 @@
+#[cfg(target_feature = "avx2")]
 use rust_enjoyer::sponges_avx::SpongesAvx;
+
 use rust_enjoyer::*;
 
 use rayon::prelude::*;
 use std::env;
 use std::process;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 
 fn main() {
     #[cfg(target_feature = "avx2")]
@@ -17,7 +21,9 @@ fn main() {
         process::exit(-1);
     }
 
-    let selector = normalize_endianess(u32::from_str_radix(&args[3], 16).expect("Invalid number"));
+    // remove any leading 0x
+    let selector = args[3].trim_start_matches("0x");
+    let selector = normalize_endianess(u32::from_str_radix(&selector, 16).expect("Invalid number"));
     let function_name = SmallString::new(&args[1]);
     let function_params = SmallString::new(&args[2]);
 
@@ -41,7 +47,7 @@ fn main() {
 
     let num_threads = num_cpus::get();
     let end = 0xfffffffff0000000usize;
-    let go = std::sync::atomic::AtomicBool::new(true);
+    let go = AtomicBool::new(true);
 
     #[cfg(target_feature = "avx2")]
     const STEP: usize = 4;
@@ -50,10 +56,12 @@ fn main() {
 
     println!("Starting mining with {num_threads} threads.");
 
-    (0..num_threads).into_par_iter().for_each(|t| {
-        let mut i = 0;
-        for nonce in (t * STEP..end).step_by(num_threads * STEP) {
-            if !go.load(std::sync::atomic::Ordering::Relaxed) {
+    (0..num_threads).into_par_iter().for_each(|thread_idx| {
+        for (idx, nonce) in (thread_idx * STEP..end)
+            .step_by(num_threads * STEP)
+            .enumerate()
+        {
+            if !go.load(Ordering::Relaxed) {
                 break;
             }
 
@@ -61,47 +69,48 @@ fn main() {
             {
                 let mut s0 = Sponge::default();
                 unsafe { s0.fill(&function_name, nonce as u64, &function_params) };
-                let c0 = unsafe { s0.compute_selectors() };
-                if c0 == selector {
+
+                if selector == unsafe { s0.compute_selectors() } {
                     let out = unsafe {
                         s0.fill_and_get_name(&function_name, nonce as u64, &function_params)
                     };
-                    println!("Function found: {}", out);
+                    println!("Function found: {out}");
 
-                    go.store(false, std::sync::atomic::Ordering::Relaxed);
+                    go.store(false, Ordering::Relaxed);
                 }
             }
             #[cfg(target_feature = "avx2")]
             {
                 let mut sponges = SpongesAvx::default();
                 unsafe { sponges.fill(&function_name, nonce as u64, &function_params) };
-                let cs = unsafe { sponges.compute_selectors() };
 
-                if cs.contains(&selector) {
-                    let index = cs
+                let maybe_idx = unsafe {
+                    sponges
+                        .compute_selectors()
                         .iter()
                         .position(|&x| x == selector)
-                        .expect("Selector not found");
-                    let out = unsafe {
-                        let mut s0 = Sponge::default();
-                        s0.fill_and_get_name(
-                            &function_name,
-                            (nonce + index) as u64,
-                            &function_params,
-                        )
-                    };
-                    println!("Function found: {}", out);
+                };
 
-                    go.store(false, std::sync::atomic::Ordering::Relaxed);
+                // Progress logging for thread 0
+                if thread_idx == 0 && idx & 0x1fffff == 0 {
+                    println!("{nonce:?} hashes done.", nonce = nonce * num_threads);
                 }
-            }
 
-            // Progress logging for thread 0
-            if t == 0 {
-                i += 1;
-                if i & 0x1fffff == 0 {
-                    println!("{nonce:?} hashes done.");
-                }
+                let Some(found_idx) = maybe_idx else {
+                    continue;
+                };
+
+                // we found a match
+                let out = unsafe {
+                    Sponge::default().fill_and_get_name(
+                        &function_name,
+                        (nonce + found_idx) as u64,
+                        &function_params,
+                    )
+                };
+                println!("Function found: {out}");
+
+                go.store(false, Ordering::Relaxed);
             }
         }
     });

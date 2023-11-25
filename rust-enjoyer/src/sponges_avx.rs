@@ -1,7 +1,6 @@
 use std::arch::x86_64::{
-    __m256i, _mm256_and_si256, _mm256_extract_epi64, _mm256_or_si256,
-    _mm256_set1_epi64x, _mm256_set_epi64x, _mm256_sll_epi64, _mm256_srl_epi64, _mm256_xor_si256,
-    _mm_set1_epi64x,
+    __m256i, _mm256_and_si256, _mm256_extract_epi64, _mm256_or_si256, _mm256_set1_epi64x,
+    _mm256_set_epi64x, _mm256_sll_epi64, _mm256_srl_epi64, _mm256_xor_si256, _mm_set1_epi64x,
 };
 use std::ops::{BitAnd, BitOr, BitXor, BitXorAssign, Not, Shl, Shr};
 
@@ -144,6 +143,7 @@ impl SpongesAvx {
         self.iters();
 
         let first_slice = self.compute_slices[0].slice;
+
         [
             _mm256_extract_epi64(first_slice, 0) as u32,
             _mm256_extract_epi64(first_slice, 1) as u32,
@@ -186,7 +186,7 @@ impl SpongesAvx {
         });
     }
 
-    pub unsafe fn iter(&mut self, b: &mut [SpongeComputeSlice; 5], x: u64) {
+    unsafe fn iter(&mut self, b: &mut [SpongeComputeSlice; 5], x: u64) {
         let a = &mut self.compute_slices;
         theta(a, b);
         rho_pi(a, b);
@@ -201,8 +201,8 @@ fn equivalent() {
         let mut s = Sponge::default();
         let mut s_avx = SpongesAvx::default();
 
-        let function_name = SmallString::new("someFunction");
-        let function_params = SmallString::new("(uint256,address)");
+        let function_name = SmallString::new("foo");
+        let function_params = SmallString::new("foo");
         assert_eq!(s.chars, s_avx.sponges[0].chars);
 
         s.fill(&function_name, 0, &function_params);
@@ -213,35 +213,47 @@ fn equivalent() {
         let b_avx = &mut [SpongeComputeSlice::default(); 5];
         assert_eq!(b[0], b_avx[0].vals()[0]);
 
-        const x1: u64 = 0x0000000000000001;
-        const x2: u64 = 0x0000000000008082;
+        const X1: u64 = 0x0000000000000001;
+        const X2: u64 = 0x0000000000008082;
 
-        s.iter(b, x1);
-        s_avx.iter(b_avx, x1);
+        s.iter(b, X1);
+        s_avx.iter(b_avx, X1);
         assert_eq!(b[0], b_avx[0].vals()[0]);
 
-        s.iter(b, x2);
-        s_avx.iter(b_avx, x2);
+        s.iter(b, X2);
+        s_avx.iter(b_avx, X2);
         assert_eq!(b[0], b_avx[0].vals()[0]);
 
-        let c0 = unsafe { s.compute_selectors() };
-        let c1 = unsafe { s_avx.compute_selectors() };
+        let c0 = s.compute_selectors();
+        let c1 = s_avx.compute_selectors();
+        println!("c0: {:X?}", c0);
+        println!("c1: {:X?}", c1);
         assert_eq!(c0, c1[0], "compute_selectors() failed");
+        assert_eq!(c0, 0x67E41DE3)
     }
 }
 
 #[test]
 fn ops() {
-    let mut s0 = SpongeComputeSlice::default();
+    let mut s = SpongeComputeSlice::default();
+    println!("s0: {s:X?}");
 
-    println!("s0: {:X?}", s0);
+    s ^= u64::MAX;
+    println!("s0: {s:X?}");
+    assert_eq!(s.vals()[0], u64::MAX);
 
-    s0 ^= u64::MAX;
-    s0 = s0 << 4;
+    s = s << 4;
+    println!("s0: {s:X?}");
+    let expected = u64::MAX << 4;
+    assert_eq!(s.vals()[0], expected);
 
-    s0 = !s0;
-    println!("s0: {:X?}", s0);
+    s = !s;
+    println!("s0: {s:X?}");
+    let expected = !(u64::MAX << 4);
+    assert_eq!(s.vals()[0], expected);
 
-    let t = crate::rotate_left(s0, 4);
-    println!("t: {:X?}", t);
+    let t = crate::rotate_left(s, 4);
+    println!("t: {t:X?}");
+    let expected = crate::rotate_left(expected, 4);
+    assert_eq!(t.vals()[0], expected);
 }

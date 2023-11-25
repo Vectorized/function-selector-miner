@@ -1,14 +1,14 @@
 pub mod small_string;
 pub mod sponge;
+#[cfg(target_feature = "avx2")]
 pub mod sponges_avx;
 
 pub use small_string::*;
 pub use sponge::*;
 
-use std::arch::x86_64::*;
 use std::ops::{BitAnd, BitOr, BitXor, BitXorAssign, Not, Shl, Shr};
 
-fn theta_<T>(a: &mut [T], b: &[T], m: usize, n: usize, o: usize)
+fn theta_<T>(a: &mut [T; 25], b: &[T; 5], m: usize, n: usize, o: usize)
 where
     T: BitXorAssign
         + BitXor<Output = T>
@@ -25,7 +25,7 @@ where
     a[o + 20] ^= t;
 }
 
-pub fn theta<T>(a: &mut [T], b: &mut [T])
+pub fn theta<T>(a: &mut [T; 25], b: &mut [T; 5])
 where
     T: BitXorAssign
         + BitXor<Output = T>
@@ -47,7 +47,7 @@ where
     theta_(a, b, 3, 0, 4);
 }
 
-fn rho_pi<T>(a: &mut [T], b: &mut [T])
+fn rho_pi<T>(a: &mut [T; 25], b: &mut [T; 5])
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
 {
@@ -79,7 +79,7 @@ where
     rho_pi_(a, b, 1, 44);
 }
 
-fn rho_pi_<T>(a: &mut [T], b: &mut [T], m: usize, n: u32)
+fn rho_pi_<T>(a: &mut [T; 25], b: &mut [T; 5], m: usize, n: u32)
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
 {
@@ -95,7 +95,7 @@ where
     (value << shift) | (value >> (64 - shift))
 }
 
-fn chi<T>(a: &mut [T])
+fn chi<T>(a: &mut [T; 25])
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Default + Copy,
 {
@@ -135,35 +135,5 @@ pub const fn normalize_endianess(x: u32) -> u32 {
 }
 
 pub fn function_selector_to_hex(x: u32) -> String {
-    format!("0x{:0width$x}", x, width = std::mem::size_of::<u32>() * 2)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_shift() {
-        let v0: u64 = 0xFFFFFFFFFFFFFFFF;
-        let v1: u64 = 0xFFFFFFFFFFFFFFFF;
-        let v2: u64 = 0xFFFFFFFFFFFFFFFF;
-        let v3: u64 = 0xFFFFFFFFFFFFFFFF;
-
-        let v = unsafe { _mm256_set_epi64x(v0 as i64, v1 as i64, v2 as i64, v3 as i64) };
-
-        let v = unsafe { _mm256_sll_epi64(v, _mm_set1_epi64x(1)) };
-
-        // pull out each as u64
-        let v0 = unsafe { _mm256_extract_epi64(v, 0) } as u64;
-        let v1 = unsafe { _mm256_extract_epi64(v, 1) } as u64;
-        let v2 = unsafe { _mm256_extract_epi64(v, 2) } as u64;
-        let v3 = unsafe { _mm256_extract_epi64(v, 3) } as u64;
-
-        assert_eq!(v0, 0xFFFFFFFFFFFFFFFE);
-        assert_eq!(v1, 0xFFFFFFFFFFFFFFFE);
-        assert_eq!(v2, 0xFFFFFFFFFFFFFFFE);
-        assert_eq!(v3, 0xFFFFFFFFFFFFFFFE);
-
-        println!("{:?}", v);
-    }
+    format!("0x{x:0x}")
 }
