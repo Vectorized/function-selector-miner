@@ -21,7 +21,7 @@ where
         + Default
         + Copy,
 {
-    let b: &mut [T; 5] = &mut Default::default();
+    let b = &mut <[T; 5]>::default();
     [
         0x0000000000000001,
         0x0000000000008082,
@@ -165,9 +165,9 @@ fn chi<T>(a: &mut [T; 25])
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Default + Copy,
 {
-    let mut b = [T::default(); 5];
+    let mut b = <[T; 5]>::default();
     [0, 5, 10, 15, 20].into_iter().for_each(|n| {
-        // b = a[n..n+5]
+        // b[0..5] = a[n..n+5]
         b.iter_mut()
             .enumerate()
             .for_each(|(idx, b_i)| *b_i = a[n + idx]);
