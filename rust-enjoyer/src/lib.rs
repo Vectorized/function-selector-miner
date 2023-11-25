@@ -18,7 +18,7 @@ where
         + Copy,
 {
     let t = b[m] ^ rotate_left(b[n], 1);
-    a[o + 0] ^= t;
+    a[o] ^= t;
     a[o + 5] ^= t;
     a[o + 10] ^= t;
     a[o + 15] ^= t;
@@ -92,7 +92,7 @@ fn rotate_left<T>(value: T, shift: u32) -> T
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
 {
-    (value << shift) | (value >> 64 - shift)
+    (value << shift) | (value >> (64 - shift))
 }
 
 fn chi<T>(a: &mut [T])
@@ -111,12 +111,12 @@ fn chi_<T>(a: &mut [T], b: &mut [T], n: usize)
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Copy,
 {
-    b[0] = a[n + 0];
+    b[0] = a[n];
     b[1] = a[n + 1];
     b[2] = a[n + 2];
     b[3] = a[n + 3];
     b[4] = a[n + 4];
-    a[n + 0] = b[0] ^ ((!b[1]) & b[2]);
+    a[n] = b[0] ^ ((!b[1]) & b[2]);
     a[n + 1] = b[1] ^ ((!b[2]) & b[3]);
     a[n + 2] = b[2] ^ ((!b[3]) & b[4]);
     a[n + 3] = b[3] ^ ((!b[4]) & b[0]);

@@ -22,7 +22,7 @@ impl Sponge {
         nonce: u64,
         function_params: &SmallString,
     ) {
-        let o = self.fill_sponge(&function_name, nonce, &function_params);
+        let o = self.fill_sponge(function_name, nonce, function_params);
         self.chars[o] = 0x01;
     }
 
@@ -32,7 +32,7 @@ impl Sponge {
         nonce: u64,
         function_params: &SmallString,
     ) -> String {
-        let o = self.fill_sponge(&function_name, nonce as u64, &function_params);
+        let o = self.fill_sponge(function_name, nonce, function_params);
         self.chars[o] = 0x00;
 
         let mut out = [0u8; 200];

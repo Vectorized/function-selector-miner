@@ -1,5 +1,5 @@
 use std::arch::x86_64::{
-    __m256i, _mm256_and_si256, _mm256_extract_epi32, _mm256_extract_epi64, _mm256_or_si256,
+    __m256i, _mm256_and_si256, _mm256_extract_epi64, _mm256_or_si256,
     _mm256_set1_epi64x, _mm256_set_epi64x, _mm256_sll_epi64, _mm256_srl_epi64, _mm256_xor_si256,
     _mm_set1_epi64x,
 };
@@ -80,7 +80,7 @@ impl Not for SpongeComputeSlice {
             slice: unsafe {
                 _mm256_xor_si256(
                     self.slice,
-                    _mm256_set1_epi64x((0xffffffffffffffff as u64) as i64),
+                    _mm256_set1_epi64x(0xffffffffffffffff_u64 as i64),
                 )
             },
         }
@@ -126,7 +126,7 @@ impl SpongesAvx {
             .iter_mut()
             .enumerate()
             .for_each(|(idx, sponge)| {
-                sponge.fill(&function_name, nonce + idx as u64, &function_params)
+                sponge.fill(function_name, nonce + idx as u64, function_params)
             });
 
         // turn the 4 sponges into compute slices using the 25 uint64s

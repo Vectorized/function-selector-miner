@@ -52,7 +52,7 @@ fn main() {
 
     (0..num_threads).into_par_iter().for_each(|t| {
         let mut i = 0;
-        for nonce in (t * STEP..end).step_by((num_threads * STEP) as usize) {
+        for nonce in (t * STEP..end).step_by(num_threads * STEP) {
             if !go.load(std::sync::atomic::Ordering::Relaxed) {
                 break;
             }
