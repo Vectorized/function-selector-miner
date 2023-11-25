@@ -321,8 +321,9 @@ int main(int argc, char *argv[])
             *fillSponge(s2.chars, functionName, nonce + 2, functionParams) = 0x01u;
             *fillSponge(s3.chars, functionName, nonce + 3, functionParams) = 0x01u;
             V sponge[25];
-            for (uint64_t i = 0; i < 25; ++i)
-                sponge[i] = V(s0.uint64s[i], s1.uint64s[i], s2.uint64s[i], s3.uint64s[i]);
+#define SET_SPONGE_(I) sponge[I] = V(s0.uint64s[I], s1.uint64s[I], s2.uint64s[I], s3.uint64s[I]);
+#define SET_SPONGE(I) SET_SPONGE_(I + 0) SET_SPONGE_(I + 1) SET_SPONGE_(I + 2) SET_SPONGE_(I + 3) SET_SPONGE_(I + 4)
+            SET_SPONGE(0) SET_SPONGE(5) SET_SPONGE(10) SET_SPONGE(15) SET_SPONGE(20)
             uint32_t c0, c1, c2, c3;
             COMPUTE_SELECTORS(c0, c1, c2, c3, sponge);
             CHECK_SELECTOR(0)
@@ -336,10 +337,7 @@ int main(int argc, char *argv[])
             COMPUTE_SELECTORS(c0, s0.uint64s);
             CHECK_SELECTOR(0)
 #endif
-            if (t == 0)
-                if ((++i & 0x1fffff) == 0)
-                    std::cout
-                        << nonce << " hashes done.\n";
+            if (t == 0) if ((++i & 0x3fffff) == 0) std::cout << nonce << " hashes done.\n";
         }
     }
     return 0;
