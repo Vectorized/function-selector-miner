@@ -186,11 +186,3 @@ where
 {
     a[0] ^= x;
 }
-
-pub const fn normalize_endianess(x: u32) -> u32 {
-    x.to_be()
-}
-
-pub fn function_selector_to_hex(x: u32) -> String {
-    format!("0x{x:0x}")
-}

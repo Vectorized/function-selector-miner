@@ -23,7 +23,9 @@ fn main() {
 
     // remove any leading 0x
     let selector = args[3].trim_start_matches("0x");
-    let selector = normalize_endianess(u32::from_str_radix(selector, 16).expect("Invalid number"));
+    let selector = u32::from_str_radix(selector, 16)
+        .expect("Invalid number")
+        .to_be();
     let function_name = SmallString::new(&args[1]);
     let function_params = SmallString::new(&args[2]);
 
@@ -40,10 +42,7 @@ fn main() {
 
     println!("Function name: {}", args[1]);
     println!("Function params: {}", args[2]);
-    println!(
-        "Target selector: {}",
-        function_selector_to_hex(normalize_endianess(selector))
-    );
+    println!("Target selector: {selector:X?}",);
 
     let num_threads = num_cpus::get();
     let end = 0xfffffffff0000000usize;
