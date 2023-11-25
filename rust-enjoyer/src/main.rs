@@ -22,7 +22,8 @@ fn main() {
     }
 
     // remove any leading 0x
-    let selector = args[3].trim_start_matches("0x");
+    let selector = args[3].to_lowercase();
+    let selector = selector.trim_start_matches("0x");
     let selector = u32::from_str_radix(selector, 16)
         .expect("Invalid number")
         .to_be();
