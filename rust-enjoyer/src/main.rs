@@ -77,15 +77,18 @@ fn main() {
                 unsafe { sponges.fill(&function_name, nonce as u64, &function_params) };
                 let cs = unsafe { sponges.compute_selectors() };
 
-                // let mut s0 = Sponge::default();
-                // unsafe { s0.fill(&function_name, nonce as u64, &function_params) };
-                // let c0 = unsafe { s0.compute_selectors() };
-                // assert_eq!(c0, cs[0], "compute_selectors() failed");
-
                 if cs.contains(&selector) {
+                    let index = cs
+                        .iter()
+                        .position(|&x| x == selector)
+                        .expect("Selector not found");
                     let out = unsafe {
                         let mut s0 = Sponge::default();
-                        s0.fill_and_get_name(&function_name, nonce as u64, &function_params)
+                        s0.fill_and_get_name(
+                            &function_name,
+                            (nonce + index) as u64,
+                            &function_params,
+                        )
                     };
                     println!("Function found: {}", out);
 
