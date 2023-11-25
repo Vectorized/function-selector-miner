@@ -83,27 +83,34 @@ where
         + Copy,
 {
     [
-        (0, 5, 10, 15, 20),
+        (0, 5, 10, 15, 20), // i, j, k, l, m
         (1, 6, 11, 16, 21),
         (2, 7, 12, 17, 22),
         (3, 8, 13, 18, 23),
         (4, 9, 14, 19, 24),
     ]
     .into_iter()
-    .for_each(|(i0, i1, i2, i3, i4)| {
-        b[i0] = a[i0] ^ a[i1] ^ a[i2] ^ a[i3] ^ a[i4];
+    .for_each(|(i, j, k, l, m)| {
+        b[i] = a[i] ^ a[j] ^ a[k] ^ a[l] ^ a[m];
     });
 
-    [(4, 1, 0), (0, 2, 1), (1, 3, 2), (2, 4, 3), (3, 0, 4)]
-        .into_iter()
-        .for_each(|(m, n, o)| {
-            let t = b[m] ^ rotate_left(b[n], 1);
-            a[o] ^= t;
-            a[o + 5] ^= t;
-            a[o + 10] ^= t;
-            a[o + 15] ^= t;
-            a[o + 20] ^= t;
-        });
+    [
+        (4, 1), // m, n
+        (0, 2),
+        (1, 3),
+        (2, 4),
+        (3, 0),
+    ]
+    .into_iter()
+    .enumerate()
+    .for_each(|(i, (m, n))| {
+        let t = b[m] ^ rotate_left(b[n], 1);
+        a[i] ^= t;
+        a[i + 5] ^= t;
+        a[i + 10] ^= t;
+        a[i + 15] ^= t;
+        a[i + 20] ^= t;
+    });
 }
 
 fn rho_pi<T>(a: &mut [T; 25], b: &mut [T; 5])
@@ -115,7 +122,7 @@ where
     a[10] = rotate_left(t, 1);
 
     [
-        (7, 3),
+        (7, 3), // m, n
         (11, 6),
         (17, 10),
         (18, 15),
@@ -160,6 +167,7 @@ where
 {
     let mut b = [T::default(); 5];
     [0, 5, 10, 15, 20].into_iter().for_each(|n| {
+        // b = a[n..n+5]
         b.iter_mut()
             .enumerate()
             .for_each(|(idx, b_i)| *b_i = a[n + idx]);
