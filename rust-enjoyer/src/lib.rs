@@ -8,16 +8,16 @@ pub use sponge::*;
 
 use std::ops::{BitAnd, BitOr, BitXor, BitXorAssign, Not, Shl, Shr};
 
-unsafe fn iters<T>(a: &mut [T; 25])
+fn iters<T>(a: &mut [T; 25])
 where
     T: BitXorAssign
+        + BitXorAssign<u64>
         + BitXor<Output = T>
+        + BitOr<Output = T>
+        + BitAnd<Output = T>
+        + Not<Output = T>
         + Shl<u32, Output = T>
         + Shr<u32, Output = T>
-        + BitOr<Output = T>
-        + Not<Output = T>
-        + BitAnd<Output = T>
-        + BitXorAssign<u64>
         + Default
         + Copy,
 {
@@ -54,16 +54,16 @@ where
     });
 }
 
-unsafe fn iter<T>(a: &mut [T; 25], b: &mut [T; 5], x: u64)
+fn iter<T>(a: &mut [T; 25], b: &mut [T; 5], x: u64)
 where
     T: BitXorAssign
+        + BitXorAssign<u64>
         + BitXor<Output = T>
+        + BitOr<Output = T>
+        + BitAnd<Output = T>
+        + Not<Output = T>
         + Shl<u32, Output = T>
         + Shr<u32, Output = T>
-        + BitOr<Output = T>
-        + Not<Output = T>
-        + BitAnd<Output = T>
-        + BitXorAssign<u64>
         + Default
         + Copy,
 {

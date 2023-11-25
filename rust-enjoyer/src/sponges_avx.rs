@@ -93,6 +93,9 @@ impl Default for SpongeComputeSlice {
 }
 
 impl SpongesAvx {
+    /// # Safety
+    ///
+    /// This function is unsafe because it uses SIMD instructions and a union type.
     pub unsafe fn fill(
         &mut self,
         function_name: &SmallString,
@@ -117,6 +120,9 @@ impl SpongesAvx {
         }
     }
 
+    /// # Safety
+    ///
+    /// This function is unsafe because it uses SIMD instructions and a union type.
     pub unsafe fn compute_selectors(&mut self) -> [u32; 4] {
         crate::iters(&mut self.compute_slices);
 

@@ -23,7 +23,7 @@ fn main() {
 
     // remove any leading 0x
     let selector = args[3].trim_start_matches("0x");
-    let selector = normalize_endianess(u32::from_str_radix(&selector, 16).expect("Invalid number"));
+    let selector = normalize_endianess(u32::from_str_radix(selector, 16).expect("Invalid number"));
     let function_name = SmallString::new(&args[1]);
     let function_params = SmallString::new(&args[2]);
 

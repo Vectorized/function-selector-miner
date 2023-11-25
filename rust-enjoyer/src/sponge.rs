@@ -16,6 +16,9 @@ impl Default for Sponge {
 }
 
 impl Sponge {
+    /// # Safety
+    ///
+    /// This function is unsafe because it writes to a union type.
     pub unsafe fn fill(
         &mut self,
         function_name: &SmallString,
@@ -26,6 +29,9 @@ impl Sponge {
         self.chars[o] = 0x01;
     }
 
+    /// # Safety
+    ///
+    /// This function is unsafe because it writes to a union type.
     pub unsafe fn fill_and_get_name(
         &mut self,
         function_name: &SmallString,
@@ -38,6 +44,9 @@ impl Sponge {
         str::from_utf8_unchecked(&self.chars[..o]).to_owned()
     }
 
+    /// # Safety
+    ///
+    /// This function is unsafe because it writes to a union type.
     pub unsafe fn fill_sponge(
         &mut self,
         function_name: &SmallString,
@@ -54,11 +63,17 @@ impl Sponge {
         offset
     }
 
+    /// # Safety
+    ///
+    /// This function is unsafe because it writes to a union type.
     pub unsafe fn fill_sponge_single(&mut self, offset: usize, s: &SmallString) -> usize {
         self.chars[offset..][..s.length].copy_from_slice(&s.data[..s.length]);
         s.length
     }
 
+    /// # Safety
+    ///
+    /// This function is unsafe because it uses SIMD instructions and a union type.
     pub unsafe fn compute_selectors(&mut self) -> u32 {
         crate::iters(&mut self.uint64s);
         self.uint64s[0] as u32
