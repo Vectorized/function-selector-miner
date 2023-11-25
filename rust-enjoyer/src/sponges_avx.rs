@@ -13,17 +13,15 @@ pub struct SpongesAvx {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct SpongeComputeSlice {
-    pub slice: __m256i,
-}
+pub struct SpongeComputeSlice(__m256i);
 
 impl SpongeComputeSlice {
     pub fn vals(&self) -> [u64; 4] {
         [
-            unsafe { _mm256_extract_epi64(self.slice, 0) as u64 },
-            unsafe { _mm256_extract_epi64(self.slice, 1) as u64 },
-            unsafe { _mm256_extract_epi64(self.slice, 2) as u64 },
-            unsafe { _mm256_extract_epi64(self.slice, 3) as u64 },
+            unsafe { _mm256_extract_epi64(self.0, 0) as u64 },
+            unsafe { _mm256_extract_epi64(self.0, 1) as u64 },
+            unsafe { _mm256_extract_epi64(self.0, 2) as u64 },
+            unsafe { _mm256_extract_epi64(self.0, 3) as u64 },
         ]
     }
 }
@@ -32,9 +30,7 @@ impl BitOr for SpongeComputeSlice {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self {
-            slice: unsafe { _mm256_or_si256(self.slice, rhs.slice) },
-        }
+        Self(unsafe { _mm256_or_si256(self.0, rhs.0) })
     }
 }
 
@@ -42,21 +38,19 @@ impl BitXor<Self> for SpongeComputeSlice {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Self {
-            slice: unsafe { _mm256_xor_si256(self.slice, rhs.slice) },
-        }
+        Self(unsafe { _mm256_xor_si256(self.0, rhs.0) })
     }
 }
 
 impl BitXorAssign<u64> for SpongeComputeSlice {
     fn bitxor_assign(&mut self, rhs: u64) {
-        self.slice = unsafe { _mm256_xor_si256(self.slice, _mm256_set1_epi64x(rhs as i64)) };
+        self.0 = unsafe { _mm256_xor_si256(self.0, _mm256_set1_epi64x(rhs as i64)) };
     }
 }
 
 impl BitXorAssign for SpongeComputeSlice {
     fn bitxor_assign(&mut self, rhs: Self) {
-        self.slice = unsafe { _mm256_xor_si256(self.slice, rhs.slice) };
+        self.0 = unsafe { _mm256_xor_si256(self.0, rhs.0) };
     }
 }
 
@@ -64,9 +58,7 @@ impl BitAnd for SpongeComputeSlice {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self {
-            slice: unsafe { _mm256_and_si256(self.slice, rhs.slice) },
-        }
+        Self(unsafe { _mm256_and_si256(self.0, rhs.0) })
     }
 }
 
@@ -74,14 +66,7 @@ impl Not for SpongeComputeSlice {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self {
-            slice: unsafe {
-                _mm256_xor_si256(
-                    self.slice,
-                    _mm256_set1_epi64x(0xffffffffffffffff_u64 as i64),
-                )
-            },
-        }
+        Self(unsafe { _mm256_xor_si256(self.0, _mm256_set1_epi64x(0xffffffffffffffff_u64 as i64)) })
     }
 }
 
@@ -89,9 +74,7 @@ impl Shr<u32> for SpongeComputeSlice {
     type Output = Self;
 
     fn shr(self, rhs: u32) -> Self::Output {
-        Self {
-            slice: unsafe { _mm256_srl_epi64(self.slice, _mm_set1_epi64x(rhs as i64)) },
-        }
+        Self(unsafe { _mm256_srl_epi64(self.0, _mm_set1_epi64x(rhs as i64)) })
     }
 }
 
@@ -99,17 +82,13 @@ impl Shl<u32> for SpongeComputeSlice {
     type Output = Self;
 
     fn shl(self, rhs: u32) -> Self::Output {
-        Self {
-            slice: unsafe { _mm256_sll_epi64(self.slice, _mm_set1_epi64x(rhs as i64)) },
-        }
+        Self(unsafe { _mm256_sll_epi64(self.0, _mm_set1_epi64x(rhs as i64)) })
     }
 }
 
 impl Default for SpongeComputeSlice {
     fn default() -> Self {
-        Self {
-            slice: unsafe { _mm256_set_epi64x(0, 0, 0, 0) },
-        }
+        Self(unsafe { _mm256_set_epi64x(0, 0, 0, 0) })
     }
 }
 
@@ -129,7 +108,7 @@ impl SpongesAvx {
 
         // turn the 4 sponges into compute slices using the 25 uint64s
         for (idx, slice) in self.compute_slices.iter_mut().enumerate() {
-            slice.slice = _mm256_set_epi64x(
+            slice.0 = _mm256_set_epi64x(
                 self.sponges[3].uint64s[idx] as i64,
                 self.sponges[2].uint64s[idx] as i64,
                 self.sponges[1].uint64s[idx] as i64,
@@ -141,7 +120,7 @@ impl SpongesAvx {
     pub unsafe fn compute_selectors(&mut self) -> [u32; 4] {
         crate::iters(&mut self.compute_slices);
 
-        let first_slice = self.compute_slices[0].slice;
+        let first_slice = self.compute_slices[0].0;
 
         [
             _mm256_extract_epi64(first_slice, 0) as u32,
