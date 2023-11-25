@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rust_enjoyer::sponges_avx::SpongeComputeSlice;
+use rust_enjoyer::{sponges_avx::SpongeComputeSlice, SmallString};
 
 fn bench_theta(c: &mut Criterion) {
     c.bench_function("theta", |b| {
@@ -13,9 +13,14 @@ fn bench_theta(c: &mut Criterion) {
 }
 
 fn bench_compute(c: &mut Criterion) {
+    let function_name = SmallString::new("foo");
+    let function_params = SmallString::new("foo");
+
     c.bench_function("compute", |b| {
         b.iter(|| {
-            let mut s_avx = rust_enjoyer::sponges_avx::SpongesAvx::default();
+            let mut s_avx = unsafe {
+                rust_enjoyer::sponges_avx::SpongesAvx::new(&function_name, 0, &function_params)
+            };
             black_box(unsafe { s_avx.compute_selectors() });
         })
     });

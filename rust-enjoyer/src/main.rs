@@ -80,8 +80,8 @@ fn main() {
             }
             #[cfg(target_feature = "avx2")]
             {
-                let mut sponges = SpongesAvx::default();
-                unsafe { sponges.fill(&function_name, nonce as u64, &function_params) };
+                let mut sponges =
+                    unsafe { SpongesAvx::new(&function_name, nonce as u64, &function_params) };
 
                 let maybe_idx = unsafe {
                     sponges

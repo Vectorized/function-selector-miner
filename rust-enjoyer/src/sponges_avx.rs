@@ -6,7 +6,6 @@ use std::ops::{BitAnd, BitOr, BitXor, BitXorAssign, Not, Shl, Shr};
 
 use crate::{SmallString, Sponge};
 
-#[derive(Default)]
 pub struct SpongesAvx {
     compute_slices: [SpongeComputeSlice; 25],
 }
@@ -95,26 +94,30 @@ impl SpongesAvx {
     /// # Safety
     ///
     /// This function is unsafe because it uses SIMD instructions and a union type.
-    pub unsafe fn fill(
-        &mut self,
+    pub unsafe fn new(
         function_name: &SmallString,
         nonce: u64,
         function_params: &SmallString,
-    ) {
+    ) -> Self {
         let mut sponges = <[Sponge; 4]>::default();
         sponges.iter_mut().enumerate().for_each(|(idx, sponge)| {
             sponge.fill(function_name, nonce + idx as u64, function_params)
         });
 
-        // turn the 4 sponges into compute slices using the 25 uint64s
-        for (idx, slice) in self.compute_slices.iter_mut().enumerate() {
-            slice.0 = _mm256_set_epi64x(
+        let compute_slices = [
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            24,
+        ]
+        .map(|idx| {
+            SpongeComputeSlice(_mm256_set_epi64x(
                 sponges[3].uint64s[idx] as i64,
                 sponges[2].uint64s[idx] as i64,
                 sponges[1].uint64s[idx] as i64,
                 sponges[0].uint64s[idx] as i64,
-            );
-        }
+            ))
+        });
+
+        Self { compute_slices }
     }
 
     /// # Safety
@@ -138,14 +141,11 @@ impl SpongesAvx {
 fn equivalent() {
     unsafe {
         let mut s = Sponge::default();
-        let mut s_avx = SpongesAvx::default();
 
         let function_name = SmallString::new("foo");
         let function_params = SmallString::new("foo");
-        assert_eq!(s.uint64s[0], s_avx.compute_slices[0].vals()[0]);
-
         s.fill(&function_name, 0, &function_params);
-        s_avx.fill(&function_name, 0, &function_params);
+        let mut s_avx = SpongesAvx::new(&function_name, 0, &function_params);
         assert_eq!(s.uint64s[0], s_avx.compute_slices[0].vals()[0]);
 
         let b = &mut [0u64; 5];
