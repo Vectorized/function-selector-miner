@@ -8,7 +8,7 @@ pub use sponge::*;
 use std::arch::x86_64::*;
 use std::ops::{BitAnd, BitOr, BitXor, BitXorAssign, Not, Shl, Shr};
 
-fn theta_<T>(a: &mut [T; 25], b: &[T; 5], m: usize, n: usize, o: usize)
+fn theta_<T>(a: &mut [T], b: &[T], m: usize, n: usize, o: usize)
 where
     T: BitXorAssign
         + BitXor<Output = T>
@@ -25,7 +25,7 @@ where
     a[o + 20] ^= t;
 }
 
-pub fn theta<T>(a: &mut [T; 25], b: &mut [T; 5])
+pub fn theta<T>(a: &mut [T], b: &mut [T])
 where
     T: BitXorAssign
         + BitXor<Output = T>
@@ -47,7 +47,7 @@ where
     theta_(a, b, 3, 0, 4);
 }
 
-fn rho_pi<T>(a: &mut [T; 25], b: &mut [T; 5])
+fn rho_pi<T>(a: &mut [T], b: &mut [T])
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
 {
@@ -79,7 +79,7 @@ where
     rho_pi_(a, b, 1, 44);
 }
 
-fn rho_pi_<T>(a: &mut [T; 25], b: &mut [T; 5], m: usize, n: u32)
+fn rho_pi_<T>(a: &mut [T], b: &mut [T], m: usize, n: u32)
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
 {
@@ -95,7 +95,7 @@ where
     (value << shift) | (value >> (64 - shift))
 }
 
-fn chi<T>(a: &mut [T; 25])
+fn chi<T>(a: &mut [T])
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Default + Copy,
 {
@@ -107,7 +107,7 @@ where
     chi_(a, &mut b, 20);
 }
 
-fn chi_<T>(a: &mut [T; 25], b: &mut [T; 5], n: usize)
+fn chi_<T>(a: &mut [T], b: &mut [T], n: usize)
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Copy,
 {
@@ -123,7 +123,7 @@ where
     a[n + 4] = b[4] ^ ((!b[0]) & b[1]);
 }
 
-fn iota<T, U>(a: &mut [T; 25], x: U)
+fn iota<T, U>(a: &mut [T], x: U)
 where
     T: BitXorAssign<U> + Copy,
 {
@@ -139,7 +139,7 @@ pub fn function_selector_to_hex(x: u32) -> String {
 }
 
 // playing around with AVX2
-pub fn theta_avx2(a: &mut [u64; 25], b: &mut [u64; 5]) {
+pub fn theta_avx2(a: &mut [u64], b: &mut [u64; 5]) {
     unsafe {
         let b_0_3 = [
             _mm256_set_epi64x(a[0] as i64, a[1] as i64, a[2] as i64, a[3] as i64),
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn test_theta_equivalence() {
-        let mut a = [0u64; 25];
+        let mut a = [0u64];
         let mut b = [0u64; 5];
 
         // Initialize `a` and `b` with some values
