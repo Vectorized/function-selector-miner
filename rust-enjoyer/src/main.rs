@@ -44,7 +44,11 @@ fn main() {
     println!("Function params: {}", args[2]);
     println!("Target selector: {selector:X?}",);
 
-    let num_threads = num_cpus::get();
+    let num_threads = args
+        .get(4)
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or_else(|| num_cpus::get());
+
     let end = 0xfffffffff0000000usize;
     let go = AtomicBool::new(true);
 
@@ -92,7 +96,10 @@ fn main() {
 
                 // Progress logging for thread 0
                 if thread_idx == 0 && idx & 0x1fffff == 0 {
-                    println!("{nonce:?} hashes done.", nonce = nonce * num_threads);
+                    println!(
+                        "{num_hashes:?} hashes done.",
+                        num_hashes = nonce * num_threads
+                    );
                 }
 
                 let Some(found_idx) = maybe_idx else {
