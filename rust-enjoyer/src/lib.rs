@@ -73,23 +73,6 @@ where
     iota(a, x);
 }
 
-fn theta_<T>(a: &mut [T; 25], b: &[T; 5], m: usize, n: usize, o: usize)
-where
-    T: BitXorAssign
-        + BitXor<Output = T>
-        + Shl<u32, Output = T>
-        + Shr<u32, Output = T>
-        + BitOr<Output = T>
-        + Copy,
-{
-    let t = b[m] ^ rotate_left(b[n], 1);
-    a[o] ^= t;
-    a[o + 5] ^= t;
-    a[o + 10] ^= t;
-    a[o + 15] ^= t;
-    a[o + 20] ^= t;
-}
-
 pub fn theta<T>(a: &mut [T; 25], b: &mut [T; 5])
 where
     T: BitXorAssign
@@ -114,7 +97,12 @@ where
     [(4, 1, 0), (0, 2, 1), (1, 3, 2), (2, 4, 3), (3, 0, 4)]
         .into_iter()
         .for_each(|(m, n, o)| {
-            theta_(a, b, m, n, o);
+            let t = b[m] ^ rotate_left(b[n], 1);
+            a[o] ^= t;
+            a[o + 5] ^= t;
+            a[o + 10] ^= t;
+            a[o + 15] ^= t;
+            a[o + 20] ^= t;
         });
 }
 
@@ -153,17 +141,10 @@ where
     ]
     .into_iter()
     .for_each(|(m, n)| {
-        rho_pi_(a, b, m, n);
+        let t = b[0];
+        b[0] = a[m];
+        a[m] = rotate_left(t, n);
     });
-}
-
-fn rho_pi_<T>(a: &mut [T; 25], b: &mut [T; 5], m: usize, n: u32)
-where
-    T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
-{
-    let t = b[0];
-    b[0] = a[m];
-    a[m] = rotate_left(t, n);
 }
 
 fn rotate_left<T>(value: T, shift: u32) -> T
@@ -179,23 +160,16 @@ where
 {
     let mut b = [T::default(); 5];
     [0, 5, 10, 15, 20].into_iter().for_each(|n| {
-        chi_(a, &mut b, n);
+        b.iter_mut()
+            .enumerate()
+            .for_each(|(idx, b_i)| *b_i = a[n + idx]);
+
+        a[n] = b[0] ^ ((!b[1]) & b[2]);
+        a[n + 1] = b[1] ^ ((!b[2]) & b[3]);
+        a[n + 2] = b[2] ^ ((!b[3]) & b[4]);
+        a[n + 3] = b[3] ^ ((!b[4]) & b[0]);
+        a[n + 4] = b[4] ^ ((!b[0]) & b[1]);
     });
-}
-
-fn chi_<T>(a: &mut [T; 25], b: &mut [T; 5], n: usize)
-where
-    T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Copy,
-{
-    b.iter_mut()
-        .enumerate()
-        .for_each(|(idx, b_i)| *b_i = a[n + idx]);
-
-    a[n] = b[0] ^ ((!b[1]) & b[2]);
-    a[n + 1] = b[1] ^ ((!b[2]) & b[3]);
-    a[n + 2] = b[2] ^ ((!b[3]) & b[4]);
-    a[n + 3] = b[3] ^ ((!b[4]) & b[0]);
-    a[n + 4] = b[4] ^ ((!b[0]) & b[1]);
 }
 
 fn iota<T, U>(a: &mut [T], x: U)
