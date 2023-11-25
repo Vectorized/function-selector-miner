@@ -18,10 +18,6 @@ fn bench_theta(c: &mut Criterion) {
 }
 
 fn bench_compute(c: &mut Criterion) {
-    // let function_name = rust_enjoyer::SmallString::new("foo");
-    // let function_params = rust_enjoyer::SmallString::new("foo");
-    // let nonce = 0;
-
     c.bench_function("compute", |b| {
         b.iter(|| {
             let mut s_avx = rust_enjoyer::sponges_avx::SpongesAvx::default();
