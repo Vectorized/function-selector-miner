@@ -1,5 +1,5 @@
+use rust_enjoyer::sponges_avx::SpongesAvx;
 use rust_enjoyer::*;
-use std::str;
 
 use rayon::prelude::*;
 use std::env;
@@ -44,7 +44,7 @@ fn main() {
     let go = std::sync::atomic::AtomicBool::new(true);
 
     #[cfg(target_feature = "avx2")]
-    const STEP: usize = 1;
+    const STEP: usize = 4;
     #[cfg(not(target_feature = "avx2"))]
     const STEP: usize = 1;
 
@@ -57,21 +57,36 @@ fn main() {
                 break;
             }
 
-            // #[cfg(not(target_feature = "avx2"))]
+            #[cfg(not(target_feature = "avx2"))]
             {
                 let mut s0 = Sponge::default();
-
-                let o = unsafe { s0.fill_sponge(&function_name, nonce as u64, &function_params) };
-                unsafe { s0.chars[o] = 0x01 };
-
+                unsafe { s0.fill(&function_name, nonce as u64, &function_params) };
                 let c0 = unsafe { s0.compute_selectors() };
                 if c0 == selector {
-                    unsafe { s0.fill_sponge(&function_name, nonce as u64, &function_params) };
-                    unsafe { s0.chars[o] = 0x00 };
+                    let out = unsafe {
+                        s0.fill_and_get_name(&function_name, nonce as u64, &function_params)
+                    };
+                    println!("Function found: {}", out);
 
-                    let mut out = [0u8; 200];
-                    out[..o].copy_from_slice(unsafe { &s0.chars[..o] });
-                    let out = unsafe { str::from_utf8_unchecked(&out) };
+                    go.store(false, std::sync::atomic::Ordering::Relaxed);
+                }
+            }
+            #[cfg(target_feature = "avx2")]
+            {
+                let mut sponges = SpongesAvx::default();
+                unsafe { sponges.fill(&function_name, nonce as u64, &function_params) };
+                let cs = unsafe { sponges.compute_selectors() };
+
+                // let mut s0 = Sponge::default();
+                // unsafe { s0.fill(&function_name, nonce as u64, &function_params) };
+                // let c0 = unsafe { s0.compute_selectors() };
+                // assert_eq!(c0, cs[0], "compute_selectors() failed");
+
+                if cs.contains(&selector) {
+                    let out = unsafe {
+                        let mut s0 = Sponge::default();
+                        s0.fill_and_get_name(&function_name, nonce as u64, &function_params)
+                    };
                     println!("Function found: {}", out);
 
                     go.store(false, std::sync::atomic::Ordering::Relaxed);

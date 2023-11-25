@@ -1,5 +1,6 @@
 pub mod small_string;
 pub mod sponge;
+pub mod sponges_avx;
 
 pub use small_string::*;
 pub use sponge::*;
@@ -91,7 +92,7 @@ fn rotate_left<T>(value: T, shift: u32) -> T
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
 {
-    (value << shift) | (value >> ((std::mem::size_of::<T>() * 8) as u32 - shift))
+    (value << shift) | (value >> 64 - shift)
 }
 
 fn chi<T>(a: &mut [T])
