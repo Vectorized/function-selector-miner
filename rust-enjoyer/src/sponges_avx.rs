@@ -4,7 +4,6 @@ use std::arch::x86_64::{
 };
 use std::ops::{BitAnd, BitOr, BitXor, BitXorAssign, Not, Shl, Shr};
 
-use crate::{chi, iota, rho_pi, theta};
 use crate::{SmallString, Sponge};
 
 #[derive(Default)]
@@ -140,7 +139,7 @@ impl SpongesAvx {
     }
 
     pub unsafe fn compute_selectors(&mut self) -> [u32; 4] {
-        self.iters();
+        crate::iters(&mut self.compute_slices);
 
         let first_slice = self.compute_slices[0].slice;
 
@@ -150,48 +149,6 @@ impl SpongesAvx {
             _mm256_extract_epi64(first_slice, 2) as u32,
             _mm256_extract_epi64(first_slice, 3) as u32,
         ]
-    }
-
-    unsafe fn iters(&mut self) {
-        let b: &mut [SpongeComputeSlice; 5] = &mut Default::default();
-        [
-            0x0000000000000001,
-            0x0000000000008082,
-            0x800000000000808a,
-            0x8000000080008000,
-            0x000000000000808b,
-            0x0000000080000001,
-            0x8000000080008081,
-            0x8000000000008009,
-            0x000000000000008a,
-            0x0000000000000088,
-            0x0000000080008009,
-            0x000000008000000a,
-            0x000000008000808b,
-            0x800000000000008b,
-            0x8000000000008089,
-            0x8000000000008003,
-            0x8000000000008002,
-            0x8000000000000080,
-            0x000000000000800a,
-            0x800000008000000a,
-            0x8000000080008081,
-            0x8000000000008080,
-            0x0000000080000001,
-            0x8000000080008008,
-        ]
-        .into_iter()
-        .for_each(|v| {
-            self.iter(b, v);
-        });
-    }
-
-    unsafe fn iter(&mut self, b: &mut [SpongeComputeSlice; 5], x: u64) {
-        let a = &mut self.compute_slices;
-        theta(a, b);
-        rho_pi(a, b);
-        chi(a);
-        iota(a, x);
     }
 }
 
@@ -216,12 +173,12 @@ fn equivalent() {
         const X1: u64 = 0x0000000000000001;
         const X2: u64 = 0x0000000000008082;
 
-        s.iter(b, X1);
-        s_avx.iter(b_avx, X1);
+        crate::iter(&mut s.uint64s, b, X1);
+        crate::iter(&mut s_avx.compute_slices, b_avx, X1);
         assert_eq!(b[0], b_avx[0].vals()[0]);
 
-        s.iter(b, X2);
-        s_avx.iter(b_avx, X2);
+        crate::iter(&mut s.uint64s, b, X2);
+        crate::iter(&mut s_avx.compute_slices, b_avx, X2);
         assert_eq!(b[0], b_avx[0].vals()[0]);
 
         let c0 = s.compute_selectors();
