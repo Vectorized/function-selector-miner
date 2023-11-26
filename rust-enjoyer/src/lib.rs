@@ -11,13 +11,13 @@ use std::ops::{BitAnd, BitOr, BitXor, BitXorAssign, Not, Shl, Shr};
 fn iters<T>(a: &mut [T; 25])
 where
     T: BitXorAssign
-        + BitXorAssign<u64>
         + BitXor<Output = T>
-        + BitOr<Output = T>
-        + BitAnd<Output = T>
-        + Not<Output = T>
         + Shl<u32, Output = T>
         + Shr<u32, Output = T>
+        + BitOr<Output = T>
+        + Not<Output = T>
+        + BitAnd<Output = T>
+        + BitXorAssign<u64>
         + Default
         + Copy,
 {
@@ -57,13 +57,13 @@ where
 fn iter<T>(a: &mut [T; 25], b: &mut [T; 5], x: u64)
 where
     T: BitXorAssign
-        + BitXorAssign<u64>
         + BitXor<Output = T>
-        + BitOr<Output = T>
-        + BitAnd<Output = T>
-        + Not<Output = T>
         + Shl<u32, Output = T>
         + Shr<u32, Output = T>
+        + BitOr<Output = T>
+        + Not<Output = T>
+        + BitAnd<Output = T>
+        + BitXorAssign<u64>
         + Default
         + Copy,
 {
@@ -71,6 +71,23 @@ where
     rho_pi(a, b);
     chi(a);
     iota(a, x);
+}
+
+fn theta_<T>(a: &mut [T; 25], b: &[T; 5], m: usize, n: usize, o: usize)
+where
+    T: BitXorAssign
+        + BitXor<Output = T>
+        + Shl<u32, Output = T>
+        + Shr<u32, Output = T>
+        + BitOr<Output = T>
+        + Copy,
+{
+    let t = b[m] ^ rotate_left(b[n], 1);
+    a[o] ^= t;
+    a[o + 5] ^= t;
+    a[o + 10] ^= t;
+    a[o + 15] ^= t;
+    a[o + 20] ^= t;
 }
 
 pub fn theta<T>(a: &mut [T; 25], b: &mut [T; 5])
@@ -82,35 +99,17 @@ where
         + BitOr<Output = T>
         + Copy,
 {
-    [
-        (0, 5, 10, 15, 20), // i, j, k, l, m
-        (1, 6, 11, 16, 21),
-        (2, 7, 12, 17, 22),
-        (3, 8, 13, 18, 23),
-        (4, 9, 14, 19, 24),
-    ]
-    .into_iter()
-    .for_each(|(i, j, k, l, m)| {
-        b[i] = a[i] ^ a[j] ^ a[k] ^ a[l] ^ a[m];
-    });
+    b[0] = a[0] ^ a[5] ^ a[10] ^ a[15] ^ a[20];
+    b[1] = a[1] ^ a[6] ^ a[11] ^ a[16] ^ a[21];
+    b[2] = a[2] ^ a[7] ^ a[12] ^ a[17] ^ a[22];
+    b[3] = a[3] ^ a[8] ^ a[13] ^ a[18] ^ a[23];
+    b[4] = a[4] ^ a[9] ^ a[14] ^ a[19] ^ a[24];
 
-    [
-        (4, 1), // m, n
-        (0, 2),
-        (1, 3),
-        (2, 4),
-        (3, 0),
-    ]
-    .into_iter()
-    .enumerate()
-    .for_each(|(i, (m, n))| {
-        let t = b[m] ^ rotate_left(b[n], 1);
-        a[i] ^= t;
-        a[i + 5] ^= t;
-        a[i + 10] ^= t;
-        a[i + 15] ^= t;
-        a[i + 20] ^= t;
-    });
+    theta_(a, b, 4, 1, 0);
+    theta_(a, b, 0, 2, 1);
+    theta_(a, b, 1, 3, 2);
+    theta_(a, b, 2, 4, 3);
+    theta_(a, b, 3, 0, 4);
 }
 
 fn rho_pi<T>(a: &mut [T; 25], b: &mut [T; 5])
@@ -120,38 +119,38 @@ where
     let t = a[1];
     b[0] = a[10];
     a[10] = rotate_left(t, 1);
+    rho_pi_(a, b, 7, 3);
+    rho_pi_(a, b, 11, 6);
+    rho_pi_(a, b, 17, 10);
+    rho_pi_(a, b, 18, 15);
+    rho_pi_(a, b, 3, 21);
+    rho_pi_(a, b, 5, 28);
+    rho_pi_(a, b, 16, 36);
+    rho_pi_(a, b, 8, 45);
+    rho_pi_(a, b, 21, 55);
+    rho_pi_(a, b, 24, 2);
+    rho_pi_(a, b, 4, 14);
+    rho_pi_(a, b, 15, 27);
+    rho_pi_(a, b, 23, 41);
+    rho_pi_(a, b, 19, 56);
+    rho_pi_(a, b, 13, 8);
+    rho_pi_(a, b, 12, 25);
+    rho_pi_(a, b, 2, 43);
+    rho_pi_(a, b, 20, 62);
+    rho_pi_(a, b, 14, 18);
+    rho_pi_(a, b, 22, 39);
+    rho_pi_(a, b, 9, 61);
+    rho_pi_(a, b, 6, 20);
+    rho_pi_(a, b, 1, 44);
+}
 
-    [
-        (7, 3), // m, n
-        (11, 6),
-        (17, 10),
-        (18, 15),
-        (3, 21),
-        (5, 28),
-        (16, 36),
-        (8, 45),
-        (21, 55),
-        (24, 2),
-        (4, 14),
-        (15, 27),
-        (23, 41),
-        (19, 56),
-        (13, 8),
-        (12, 25),
-        (2, 43),
-        (20, 62),
-        (14, 18),
-        (22, 39),
-        (9, 61),
-        (6, 20),
-        (1, 44),
-    ]
-    .into_iter()
-    .for_each(|(m, n)| {
-        let t = b[0];
-        b[0] = a[m];
-        a[m] = rotate_left(t, n);
-    });
+fn rho_pi_<T>(a: &mut [T; 25], b: &mut [T; 5], m: usize, n: u32)
+where
+    T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
+{
+    let t = b[0];
+    b[0] = a[m];
+    a[m] = rotate_left(t, n);
 }
 
 fn rotate_left<T>(value: T, shift: u32) -> T
@@ -166,18 +165,27 @@ where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Default + Copy,
 {
     let mut b = <[T; 5]>::default();
-    [0, 5, 10, 15, 20].into_iter().for_each(|n| {
-        // b[0..5] = a[n..n+5]
-        b.iter_mut()
-            .enumerate()
-            .for_each(|(idx, b_i)| *b_i = a[n + idx]);
+    chi_(a, &mut b, 0);
+    chi_(a, &mut b, 5);
+    chi_(a, &mut b, 10);
+    chi_(a, &mut b, 15);
+    chi_(a, &mut b, 20);
+}
 
-        a[n] = b[0] ^ ((!b[1]) & b[2]);
-        a[n + 1] = b[1] ^ ((!b[2]) & b[3]);
-        a[n + 2] = b[2] ^ ((!b[3]) & b[4]);
-        a[n + 3] = b[3] ^ ((!b[4]) & b[0]);
-        a[n + 4] = b[4] ^ ((!b[0]) & b[1]);
-    });
+fn chi_<T>(a: &mut [T], b: &mut [T], n: usize)
+where
+    T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Copy,
+{
+    b[0] = a[n];
+    b[1] = a[n + 1];
+    b[2] = a[n + 2];
+    b[3] = a[n + 3];
+    b[4] = a[n + 4];
+    a[n] = b[0] ^ ((!b[1]) & b[2]);
+    a[n + 1] = b[1] ^ ((!b[2]) & b[3]);
+    a[n + 2] = b[2] ^ ((!b[3]) & b[4]);
+    a[n + 3] = b[3] ^ ((!b[4]) & b[0]);
+    a[n + 4] = b[4] ^ ((!b[0]) & b[1]);
 }
 
 fn iota<T, U>(a: &mut [T], x: U)
