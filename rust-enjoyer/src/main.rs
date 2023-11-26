@@ -43,7 +43,7 @@ fn main() {
 
     println!("Function name: {}", args[1]);
     println!("Function params: {}", args[2]);
-    println!("Target selector: {selector:X?}",);
+    println!("Target selector: {selector:#10x?}",);
 
     let num_threads = args
         .get(4)
@@ -97,10 +97,7 @@ fn main() {
 
                 // Progress logging for thread 0
                 if thread_idx == 0 && idx & 0x1fffff == 0 {
-                    println!(
-                        "{num_hashes:?} hashes done.",
-                        num_hashes = nonce * num_threads
-                    );
+                    println!("{num_hashes:?} hashes done.", num_hashes = nonce);
                 }
 
                 let Some(found_idx) = maybe_idx else {
