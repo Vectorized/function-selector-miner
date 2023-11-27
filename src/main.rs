@@ -13,13 +13,13 @@ use std::time::Instant;
 
 fn main() {
     #[cfg(target_feature = "avx2")]
-    println!("AVX2 enabled");
+    println!("AVX2 enabled.");
     #[cfg(not(target_feature = "avx2"))]
-    println!("AVX2 disabled");
+    println!("AVX2 disabled.");
 
     let args: Vec<String> = env::args().collect();
     if args.len() < 4 {
-        println!("Usage: <function name> <function params> <target selector>");
+        println!("Usage: <function name> <function params> <target selector> [num_threads]");
         process::exit(-1);
     }
 
@@ -27,7 +27,7 @@ fn main() {
     let selector = args[3].to_lowercase();
     let selector = selector.trim_start_matches("0x");
     let selector = u32::from_str_radix(selector, 16)
-        .expect("Invalid number")
+        .expect("Invalid number.")
         .to_be();
     let function_name = SmallString::new(&args[1]);
     let function_params = SmallString::new(&args[2]);
@@ -38,14 +38,14 @@ fn main() {
     }
 
     if std::mem::size_of::<u64>() != 8 {
-        println!("Incompatible architecture");
+        println!("Incompatible architecture.");
         println!("u64: {}", std::mem::size_of::<u64>());
         process::exit(-1);
     }
 
     println!("Function name: {}", args[1]);
     println!("Function params: {}", args[2]);
-    println!("Target selector: {selector:#10x?}",);
+    println!("Target selector: {:#10x}", selector.to_be());
 
     let num_threads = args
         .get(4)
@@ -63,7 +63,7 @@ fn main() {
     ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build_global()
-        .expect("Failed to create thread pool");
+        .expect("Failed to create thread pool.");
 
     println!("Starting mining with {num_threads} threads.");
 
@@ -87,7 +87,7 @@ fn main() {
                     let out = unsafe {
                         s0.fill_and_get_name(&function_name, nonce as u64, &function_params)
                     };
-                    println!("Function found: {out}");
+                    println!("Function found: {out} in {:.02?}", stopwatch.elapsed());
 
                     go.store(false, Ordering::Relaxed);
                 }

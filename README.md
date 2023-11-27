@@ -8,10 +8,16 @@ Should be able to mine most selectors under a minute with a core i7-12700F.
 
 ## Requirements
 
-Rust compiler. Tested with rustc 1.72.0.
+A recent Rust compiler. Tested with rustc 1.72.0.
 
 ## Running
 
 ```
 cargo run --release <function_name> <function_params> <target_selector> [num_threads]
+```
+
+For example:
+
+```
+cargo run --release "someFunction" "(uint256,address)" "0x12345678"
 ```
