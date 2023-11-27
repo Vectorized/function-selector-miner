@@ -8,6 +8,7 @@ pub use sponge::*;
 
 use std::ops::{BitAnd, BitOr, BitXor, BitXorAssign, Not, Shl, Shr};
 
+#[inline(always)]
 fn iters<T>(a: &mut [T; 25])
 where
     T: BitXorAssign
@@ -54,6 +55,7 @@ where
     });
 }
 
+#[inline(always)]
 fn iter<T>(a: &mut [T; 25], b: &mut [T; 5], x: u64)
 where
     T: BitXorAssign
@@ -73,6 +75,7 @@ where
     iota(a, x);
 }
 
+#[inline(always)]
 fn theta_<T>(a: &mut [T; 25], b: &[T; 5], m: usize, n: usize, o: usize)
 where
     T: BitXorAssign
@@ -90,6 +93,7 @@ where
     a[o + 20] ^= t;
 }
 
+#[inline(always)]
 pub fn theta<T>(a: &mut [T; 25], b: &mut [T; 5])
 where
     T: BitXorAssign
@@ -112,6 +116,7 @@ where
     theta_(a, b, 3, 0, 4);
 }
 
+#[inline(always)]
 fn rho_pi<T>(a: &mut [T; 25], b: &mut [T; 5])
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
@@ -144,6 +149,7 @@ where
     rho_pi_(a, b, 1, 44);
 }
 
+#[inline(always)]
 fn rho_pi_<T>(a: &mut [T; 25], b: &mut [T; 5], m: usize, n: u32)
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
@@ -153,6 +159,7 @@ where
     a[m] = rotate_left(t, n);
 }
 
+#[inline(always)]
 fn rotate_left<T>(value: T, shift: u32) -> T
 where
     T: Copy + Shl<u32, Output = T> + Shr<u32, Output = T> + BitOr<Output = T>,
@@ -160,6 +167,7 @@ where
     (value << shift) | (value >> (64 - shift))
 }
 
+#[inline(always)]
 fn chi<T>(a: &mut [T; 25])
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Default + Copy,
@@ -172,6 +180,7 @@ where
     chi_(a, &mut b, 20);
 }
 
+#[inline(always)]
 fn chi_<T>(a: &mut [T], b: &mut [T], n: usize)
 where
     T: Not<Output = T> + BitAnd<Output = T> + BitXor<Output = T> + Copy,
@@ -188,6 +197,7 @@ where
     a[n + 4] = b[4] ^ ((!b[0]) & b[1]);
 }
 
+#[inline(always)]
 fn iota<T, U>(a: &mut [T], x: U)
 where
     T: BitXorAssign<U> + Copy,

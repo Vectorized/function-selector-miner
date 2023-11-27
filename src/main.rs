@@ -1,6 +1,6 @@
-use rayon::ThreadPoolBuilder;
 #[cfg(target_feature = "avx2")]
 use function_selector_miner::sponges_avx::SpongesAvx;
+use rayon::ThreadPoolBuilder;
 
 use function_selector_miner::*;
 

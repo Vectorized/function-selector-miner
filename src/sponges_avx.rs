@@ -14,6 +14,7 @@ pub struct SpongesAvx {
 pub struct SpongeComputeSlice(__m256i);
 
 impl SpongeComputeSlice {
+    #[inline(always)]
     pub fn vals(&self) -> [u64; 4] {
         [
             unsafe { _mm256_extract_epi64(self.0, 0) as u64 },
@@ -27,6 +28,7 @@ impl SpongeComputeSlice {
 impl BitOr for SpongeComputeSlice {
     type Output = Self;
 
+    #[inline(always)]
     fn bitor(self, rhs: Self) -> Self::Output {
         Self(unsafe { _mm256_or_si256(self.0, rhs.0) })
     }
@@ -35,18 +37,21 @@ impl BitOr for SpongeComputeSlice {
 impl BitXor<Self> for SpongeComputeSlice {
     type Output = Self;
 
+    #[inline(always)]
     fn bitxor(self, rhs: Self) -> Self::Output {
         Self(unsafe { _mm256_xor_si256(self.0, rhs.0) })
     }
 }
 
 impl BitXorAssign<u64> for SpongeComputeSlice {
+    #[inline(always)]
     fn bitxor_assign(&mut self, rhs: u64) {
         self.0 = unsafe { _mm256_xor_si256(self.0, _mm256_set1_epi64x(rhs as i64)) };
     }
 }
 
 impl BitXorAssign for SpongeComputeSlice {
+    #[inline(always)]
     fn bitxor_assign(&mut self, rhs: Self) {
         self.0 = unsafe { _mm256_xor_si256(self.0, rhs.0) };
     }
@@ -55,6 +60,7 @@ impl BitXorAssign for SpongeComputeSlice {
 impl BitAnd for SpongeComputeSlice {
     type Output = Self;
 
+    #[inline(always)]
     fn bitand(self, rhs: Self) -> Self::Output {
         Self(unsafe { _mm256_and_si256(self.0, rhs.0) })
     }
@@ -63,6 +69,7 @@ impl BitAnd for SpongeComputeSlice {
 impl Not for SpongeComputeSlice {
     type Output = Self;
 
+    #[inline(always)]
     fn not(self) -> Self::Output {
         Self(unsafe { _mm256_xor_si256(self.0, _mm256_set1_epi64x(-1)) })
     }
@@ -71,6 +78,7 @@ impl Not for SpongeComputeSlice {
 impl Shr<u32> for SpongeComputeSlice {
     type Output = Self;
 
+    #[inline(always)]
     fn shr(self, rhs: u32) -> Self::Output {
         Self(unsafe { _mm256_srl_epi64(self.0, _mm_set1_epi64x(rhs as i64)) })
     }
@@ -79,14 +87,16 @@ impl Shr<u32> for SpongeComputeSlice {
 impl Shl<u32> for SpongeComputeSlice {
     type Output = Self;
 
+    #[inline(always)]
     fn shl(self, rhs: u32) -> Self::Output {
         Self(unsafe { _mm256_sll_epi64(self.0, _mm_set1_epi64x(rhs as i64)) })
     }
 }
 
 impl Default for SpongeComputeSlice {
+    #[inline(always)]
     fn default() -> Self {
-        Self(unsafe { _mm256_set_epi64x(0, 0, 0, 0) })
+        Self(unsafe { _mm256_set1_epi64x(0) })
     }
 }
 
@@ -94,6 +104,7 @@ impl SpongesAvx {
     /// # Safety
     ///
     /// This function is unsafe because it uses SIMD instructions and a union type.
+    #[inline(always)]
     pub unsafe fn new<const N: usize>(
         function_name: &SmallString,
         nonce: u64,
@@ -109,12 +120,16 @@ impl SpongesAvx {
             24,
         ]
         .map(|idx| {
-            SpongeComputeSlice(_mm256_set_epi64x(
-                sponges[3].uint64s[idx] as i64,
-                sponges[2].uint64s[idx] as i64,
-                sponges[1].uint64s[idx] as i64,
-                sponges[0].uint64s[idx] as i64,
-            ))
+            SpongeComputeSlice(if idx < 17 {
+                _mm256_set_epi64x(
+                    sponges[3].uint64s[idx] as i64,
+                    sponges[2].uint64s[idx] as i64,
+                    sponges[1].uint64s[idx] as i64,
+                    sponges[0].uint64s[idx] as i64,
+                )
+            } else {
+                _mm256_set1_epi64x(0)
+            })
         });
 
         Self { compute_slices }
@@ -123,6 +138,7 @@ impl SpongesAvx {
     /// # Safety
     ///
     /// This function is unsafe because it uses SIMD instructions and a union type.
+    #[inline(always)]
     pub unsafe fn compute_selectors(&mut self) -> [u32; 4] {
         crate::iters(&mut self.compute_slices);
 
