@@ -8,6 +8,7 @@ pub union Sponge {
 }
 
 impl Default for Sponge {
+    #[inline(always)]
     fn default() -> Self {
         Self {
             uint64s: [0u64; 25],
@@ -19,6 +20,7 @@ impl Sponge {
     /// # Safety
     ///
     /// This function is unsafe because it writes to a union type.
+    #[inline(always)]
     pub unsafe fn fill<const N: usize>(
         &mut self,
         function_name: &SmallString,
@@ -32,6 +34,7 @@ impl Sponge {
     /// # Safety
     ///
     /// This function is unsafe because it writes to a union type.
+    #[inline(always)]
     pub unsafe fn fill_and_get_name<const N: usize>(
         &mut self,
         function_name: &SmallString,
@@ -47,6 +50,7 @@ impl Sponge {
     /// # Safety
     ///
     /// This function is unsafe because it writes to a union type.
+    #[inline(always)]
     pub unsafe fn fill_sponge<const N: usize>(
         &mut self,
         function_name: &SmallString,
@@ -66,6 +70,7 @@ impl Sponge {
     /// # Safety
     ///
     /// This function is unsafe because it writes to a union type.
+    #[inline(always)]
     pub unsafe fn fill_sponge_single<const N: usize>(
         &mut self,
         offset: usize,
@@ -79,12 +84,14 @@ impl Sponge {
     /// # Safety
     ///
     /// This function is unsafe because it uses SIMD instructions and a union type.
+    #[inline(always)]
     pub unsafe fn compute_selectors(&mut self) -> u32 {
         crate::iters(&mut self.uint64s);
         self.uint64s[0] as u32
     }
 }
 
+#[inline(always)]
 fn write_decimal(out: &mut [u8], mut x: u64) -> usize {
     let mut buff = [0u8; 32];
     let n = 32;
