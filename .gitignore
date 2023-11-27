@@ -1,4 +1,5 @@
 
 rust-enjoyer/target/
-
 rust-enjoyer/Cargo.lock
+target/
+Cargo.lock
