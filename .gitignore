@@ -1,4 +1,6 @@
 
 rust-enjoyer/target/
-
 rust-enjoyer/Cargo.lock
+target/
+Cargo.lock
+cpp/function_selector_miner

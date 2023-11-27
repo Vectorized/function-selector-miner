@@ -19,26 +19,26 @@ impl Sponge {
     /// # Safety
     ///
     /// This function is unsafe because it writes to a union type.
-    pub unsafe fn fill(
+    pub unsafe fn fill<const N: usize>(
         &mut self,
         function_name: &SmallString,
         nonce: u64,
         function_params: &SmallString,
     ) {
-        let o = self.fill_sponge(function_name, nonce, function_params);
+        let o = self.fill_sponge::<N>(function_name, nonce, function_params);
         self.chars[o] = 0x01;
     }
 
     /// # Safety
     ///
     /// This function is unsafe because it writes to a union type.
-    pub unsafe fn fill_and_get_name(
+    pub unsafe fn fill_and_get_name<const N: usize>(
         &mut self,
         function_name: &SmallString,
         nonce: u64,
         function_params: &SmallString,
     ) -> String {
-        let o = self.fill_sponge(function_name, nonce, function_params);
+        let o = self.fill_sponge::<N>(function_name, nonce, function_params);
         self.chars[o] = 0x00;
 
         str::from_utf8_unchecked(&self.chars[..o]).to_owned()
@@ -47,15 +47,15 @@ impl Sponge {
     /// # Safety
     ///
     /// This function is unsafe because it writes to a union type.
-    pub unsafe fn fill_sponge(
+    pub unsafe fn fill_sponge<const N: usize>(
         &mut self,
         function_name: &SmallString,
         nonce: u64,
         function_params: &SmallString,
     ) -> usize {
-        let mut offset = self.fill_sponge_single(0, function_name);
+        let mut offset = self.fill_sponge_single::<N>(0, function_name);
         offset += write_decimal(&mut self.chars[offset..], nonce);
-        offset += self.fill_sponge_single(offset, function_params);
+        offset += self.fill_sponge_single::<N>(offset, function_params);
 
         let end = 200;
         self.chars[offset..end].fill(0);
@@ -66,8 +66,16 @@ impl Sponge {
     /// # Safety
     ///
     /// This function is unsafe because it writes to a union type.
-    pub unsafe fn fill_sponge_single(&mut self, offset: usize, s: &SmallString) -> usize {
-        self.chars[offset..][..s.length].copy_from_slice(&s.data[..s.length]);
+    pub unsafe fn fill_sponge_single<const N: usize>(
+        &mut self,
+        offset: usize,
+        s: &SmallString,
+    ) -> usize {
+        if N == 0 {
+            self.chars[offset..][..s.length].copy_from_slice(&s.data[..s.length]);
+        } else {
+            self.chars[offset..][..64].copy_from_slice(&s.data[..64]);
+        }
         s.length
     }
 

@@ -94,14 +94,14 @@ impl SpongesAvx {
     /// # Safety
     ///
     /// This function is unsafe because it uses SIMD instructions and a union type.
-    pub unsafe fn new(
+    pub unsafe fn new<const N: usize>(
         function_name: &SmallString,
         nonce: u64,
         function_params: &SmallString,
     ) -> Self {
         let mut sponges = <[Sponge; 4]>::default();
         sponges.iter_mut().enumerate().for_each(|(idx, sponge)| {
-            sponge.fill(function_name, nonce + idx as u64, function_params)
+            sponge.fill::<N>(function_name, nonce + idx as u64, function_params)
         });
 
         let compute_slices = [
@@ -144,7 +144,7 @@ fn equivalent() {
 
         let function_name = SmallString::new("foo");
         let function_params = SmallString::new("foo");
-        s.fill(&function_name, 0, &function_params);
+        s.fill::<0>(&function_name, 0, &function_params);
         let mut s_avx = SpongesAvx::new(&function_name, 0, &function_params);
         assert_eq!(s.uint64s[0], s_avx.compute_slices[0].vals()[0]);
 

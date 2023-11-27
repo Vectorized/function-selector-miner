@@ -6,27 +6,18 @@ Uses AVX2 instructions and multithreading to compute hashes in parallel.
 
 Should be able to mine most selectors under a minute with a core i7-12700F.
 
-Rust edition here: https://github.com/nascent-chris/function-selector-miner/tree/chris/rustyboi   
-(can be slightly faster).
-
 ## Requirements
 
-C++ compiler with OpenMP support.
-
-## Building
-
-```
-g++ main.cpp -O3 -march=native -DNDEBUG -fopenmp -o function_selector_miner
-```
+A recent Rust compiler. Tested with rustc 1.72.0.
 
 ## Running
 
 ```
-./function_selector_miner <function name> <function params> <target selector>
+cargo run --release <function_name> <function_params> <target_selector> [num_threads]
 ```
 
-For example: 
+For example:
 
 ```
-./function_selector_miner "someFunction" "(uint256,address)" "0x12345678"
+cargo run --release "someFunction" "(uint256,address)" "0x12345678"
 ```

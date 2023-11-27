@@ -7,7 +7,15 @@
 #include <stdint.h>
 #include <omp.h>
 
-inline char *writeDecimal(char *out, uint64_t x)
+#if defined(_MSC_VER)
+#define FORCE_INLINE __forceinline
+#elif defined(__GNUC__) && __GNUC__ > 3
+#define FORCE_INLINE inline __attribute__ ((__always_inline__))
+#else
+#define FORCE_INLINE inline
+#endif
+
+FORCE_INLINE char *writeDecimal(char *out, uint64_t x)
 {
     char buff[64], *end = buff + 32, *p = end;
     do { *(--p) = (x % 10) + 48; } while (x /= 10);
@@ -15,7 +23,7 @@ inline char *writeDecimal(char *out, uint64_t x)
     return out + (end - p);
 }
 
-inline std::string functionSelectorToHex(uint32_t x)
+FORCE_INLINE std::string functionSelectorToHex(uint32_t x)
 {
     std::stringstream ss;
     ss << "0x" << std::setfill('0') << std::setw(sizeof(uint32_t) * 2) << std::hex << x;
@@ -28,45 +36,45 @@ inline std::string functionSelectorToHex(uint32_t x)
 struct V
 {
     __m256i v;
-    inline V() {}
-    inline V(const __m256i &v): v(v) {}
-    inline V(uint64_t v0, uint64_t v1, uint64_t v2, uint64_t v3)
+    FORCE_INLINE V() {}
+    FORCE_INLINE V(const __m256i &v): v(v) {}
+    FORCE_INLINE V(uint64_t v0, uint64_t v1, uint64_t v2, uint64_t v3)
     {
         v = _mm256_set_epi64x(v3, v2, v1, v0);
     }
 };
 
-inline V operator ^ (const V &a, const V &b)
+FORCE_INLINE V operator ^ (const V &a, const V &b)
 {
     return V(_mm256_xor_si256(a.v, b.v));
 }
 
-inline V operator ^ (const V &a, uint64_t b)
+FORCE_INLINE V operator ^ (const V &a, uint64_t b)
 {
     return V(_mm256_xor_si256(a.v, _mm256_set1_epi64x(b)));
 }
 
-inline V operator | (const V &a, const V &b)
+FORCE_INLINE V operator | (const V &a, const V &b)
 {
     return V(_mm256_or_si256(a.v, b.v));
 }
 
-inline V operator << (const V &a, uint64_t i)
+FORCE_INLINE V operator << (const V &a, uint64_t i)
 {
     return V(_mm256_sll_epi64(a.v, _mm_set1_epi64x(i)));
 }
 
-inline V operator >> (const V &a, uint64_t i)
+FORCE_INLINE V operator >> (const V &a, uint64_t i)
 {
     return V(_mm256_srl_epi64(a.v, _mm_set1_epi64x(i)));
 }
 
-inline V operator & (const V &a, const V &b)
+FORCE_INLINE V operator & (const V &a, const V &b)
 {
     return V(_mm256_and_si256(a.v, b.v));
 }
 
-inline V operator ~ (const V &a)
+FORCE_INLINE V operator ~ (const V &a)
 {
     return V(_mm256_xor_si256(a.v, _mm256_set1_epi64x(0xffffffffffffffffull)));
 }
@@ -132,10 +140,10 @@ ITER(0x0000000080000001); ITER(0x8000000080008008);
 { \
     V *a = SPONGE, b[5], t; \
     ITERS() \
-    memcpy(&C0, ((uint64_t *)&(a[0].v)) + 0, 4); \
-    memcpy(&C1, ((uint64_t *)&(a[0].v)) + 1, 4); \
-    memcpy(&C2, ((uint64_t *)&(a[0].v)) + 2, 4); \
-    memcpy(&C3, ((uint64_t *)&(a[0].v)) + 3, 4); \
+    C0 = _mm256_extract_epi32(a[0].v, 0); \
+    C1 = _mm256_extract_epi32(a[0].v, 2); \
+    C2 = _mm256_extract_epi32(a[0].v, 4); \
+    C3 = _mm256_extract_epi32(a[0].v, 6); \
 }
 #else
 #define COMPUTE_SELECTORS(C, SPONGE) \
@@ -146,7 +154,7 @@ ITER(0x0000000080000001); ITER(0x8000000080008008);
 }
 #endif
 
-inline uint32_t normalizeEndianess(uint32_t x)
+FORCE_INLINE uint32_t normalizeEndianess(uint32_t x)
 {
     union {
         uint32_t i;
@@ -162,56 +170,35 @@ struct SmallString
     char data[128];
     uint64_t length;
 
-    inline SmallString(const char *s)
+    FORCE_INLINE SmallString(const char *s)
     {
         length = strlen(s);
         if (length < 128) strcpy(data, s);
     }
 };
 
-inline char *fillSponge(char *sponge, const SmallString &s)
+template <unsigned Length>
+FORCE_INLINE char *fillSponge(char *sponge, const SmallString &s)
 {
-    memcpy(sponge, s.data, s.length);
+    memcpy(sponge, s.data, Length == 0 ? s.length : Length);
     return sponge + s.length;
 }
 
-inline char *fillSponge(char *sponge, const SmallString &functionName, uint64_t nonce, const SmallString &functionParams)
+template <unsigned Length>
+FORCE_INLINE char *fillSponge(char *sponge, const SmallString &functionName, uint64_t nonce, const SmallString &functionParams)
 {
     char *o = sponge;
-    o = fillSponge(o, functionName);
+    o = fillSponge<Length>(o, functionName);
     o = writeDecimal(o, nonce);
-    o = fillSponge(o, functionParams);
-    const char *end = sponge + 200;
-    for (char *c = o; c < end; ++c) *c = 0;
+    o = fillSponge<Length>(o, functionParams);
+    memset(o, 0, sponge + 135 - o);
     sponge[135] = 0x80u;
     return o;
 }
 
-int main(int argc, char * argv[])
+template <unsigned Length>
+FORCE_INLINE void mine(const SmallString &functionName, const SmallString &functionParams, uint32_t selector)
 {
-    if (argc < 4) {
-        std::cout << "Usage: <function name> <function params> <target selector>\n" << std::flush;
-        return -1;
-    }
-
-    const uint32_t selector = normalizeEndianess(std::stol(argv[3], nullptr, 16));
-    const SmallString functionName(argv[1]);
-    const SmallString functionParams(argv[2]);
-
-    if (functionName.length + functionParams.length >= 115) {
-        std::cout << "Total length of <function name> and <function params> must be under 115 bytes.";
-        return -1;
-    }
-
-    if (sizeof(char) != 1 || sizeof(uint64_t) != 8) {
-        std::cout << "Incompatible architecture\n";
-        return -1;
-    }
-
-    std::cout << "Function name: " << argv[1] << "\n";
-    std::cout << "Function params: " << argv[2] << "\n";
-    std::cout << "Target selector: " << functionSelectorToHex(normalizeEndianess(selector)) << "\n";
-    
     bool go = true;
 
     const uint64_t numThreads = omp_get_max_threads();
@@ -235,27 +222,31 @@ int main(int argc, char * argv[])
         for (uint64_t nonce = t * STEP; nonce < end && go; nonce += numThreads * STEP) {
 #define CHECK_SELECTOR(I) \
             if (c##I == selector) { \
-                *fillSponge(s##I.chars, functionName, nonce + I, functionParams) = 0x00u; \
+                *fillSponge<Length>(s##I.chars, functionName, nonce + I, functionParams) = 0x00u; \
                 std::cout << "Function found: " << s##I.chars << "\n"; \
                 go = false; \
             }
 
 #if defined (__AVX2__)
             Sponge s0, s1, s2, s3;
-            *fillSponge(s0.chars, functionName, nonce + 0, functionParams) = 0x01u;
-            *fillSponge(s1.chars, functionName, nonce + 1, functionParams) = 0x01u;
-            *fillSponge(s2.chars, functionName, nonce + 2, functionParams) = 0x01u;
-            *fillSponge(s3.chars, functionName, nonce + 3, functionParams) = 0x01u;
+            *fillSponge<Length>(s0.chars, functionName, nonce + 0, functionParams) = 0x01u;
+            *fillSponge<Length>(s1.chars, functionName, nonce + 1, functionParams) = 0x01u;
+            *fillSponge<Length>(s2.chars, functionName, nonce + 2, functionParams) = 0x01u;
+            *fillSponge<Length>(s3.chars, functionName, nonce + 3, functionParams) = 0x01u;
             V sponge[25];
-#define SET_SPONGE_(I) sponge[I] = V(s0.uint64s[I], s1.uint64s[I], s2.uint64s[I], s3.uint64s[I]);
-#define SET_SPONGE(I) SET_SPONGE_(I + 0) SET_SPONGE_(I + 1) SET_SPONGE_(I + 2) SET_SPONGE_(I + 3) SET_SPONGE_(I + 4)
-            SET_SPONGE(0) SET_SPONGE(5) SET_SPONGE(10) SET_SPONGE(15) SET_SPONGE(20)
+#define SET_SPONGE(I) sponge[I] = V(s0.uint64s[I], s1.uint64s[I], s2.uint64s[I], s3.uint64s[I]);
+            SET_SPONGE(0) SET_SPONGE(1) SET_SPONGE(2) SET_SPONGE(3) 
+            SET_SPONGE(4) SET_SPONGE(5) SET_SPONGE(6) SET_SPONGE(7) 
+            SET_SPONGE(8) SET_SPONGE(9) SET_SPONGE(10) SET_SPONGE(11) 
+            SET_SPONGE(12) SET_SPONGE(13) SET_SPONGE(14) SET_SPONGE(15) SET_SPONGE(16)
+            memset(sponge + 17, 0, sizeof(V) * 8);
             uint32_t c0, c1, c2, c3;
             COMPUTE_SELECTORS(c0, c1, c2, c3, sponge);
             CHECK_SELECTOR(0) CHECK_SELECTOR(1) CHECK_SELECTOR(2) CHECK_SELECTOR(3)
 #else
             Sponge s0;
-            *fillSponge(s0.chars, functionName, nonce, functionParams) = 0x01u;
+            *fillSponge<Length>(s0.chars, functionName, nonce, functionParams) = 0x01u;
+            memset(s0.uint64s + 17, 0, sizeof(uint64_t) * 8);
             uint32_t c0;
             COMPUTE_SELECTORS(c0, s0.uint64s);
             CHECK_SELECTOR(0)
@@ -263,6 +254,42 @@ int main(int argc, char * argv[])
             if (t == 0) if ((++i & 0x3fffff) == 0) std::cout << nonce << " hashes done.\n";
         }
     }
-    return 0;
 }
 
+int main(int argc, char * argv[])
+{
+    if (argc < 4) {
+        std::cout << "Usage: <function name> <function params> <target selector>\n" << std::flush;
+        return -1;
+    }
+
+#if defined (__AVX2__)
+    std::cout << "AVX2 enabled\n";
+#endif
+
+    const uint32_t selector = normalizeEndianess(std::stol(argv[3], nullptr, 16));
+    const SmallString functionName(argv[1]);
+    const SmallString functionParams(argv[2]);
+
+    if (functionName.length + functionParams.length >= 115) {
+        std::cout << "Total length of <function name> and <function params> must be under 115 bytes.";
+        return -1;
+    }
+
+    if (sizeof(char) != 1 || sizeof(uint64_t) != 8) {
+        std::cout << "Incompatible architecture\n";
+        return -1;
+    }
+
+    std::cout << "Function name: " << argv[1] << "\n";
+    std::cout << "Function params: " << argv[2] << "\n";
+    std::cout << "Target selector: " << functionSelectorToHex(normalizeEndianess(selector)) << "\n";
+
+    if (functionName.length <= 64 && functionParams.length <= 64) {
+        mine<64>(functionName, functionParams, selector);
+    } else {
+        mine<0>(functionName, functionParams, selector);
+    }
+
+    return 0;
+}
