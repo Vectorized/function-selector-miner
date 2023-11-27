@@ -59,14 +59,14 @@ FORCE_INLINE V operator | (const V &a, const V &b)
     return V(_mm256_or_si256(a.v, b.v));
 }
 
-FORCE_INLINE V operator << (const V &a, uint64_t i)
+FORCE_INLINE V operator << (const V &a, int32_t i)
 {
-    return V(_mm256_sll_epi64(a.v, _mm_set1_epi64x(i)));
+    return V(_mm256_slli_epi64(a.v, i));
 }
 
-FORCE_INLINE V operator >> (const V &a, uint64_t i)
+FORCE_INLINE V operator >> (const V &a, int32_t i)
 {
-    return V(_mm256_srl_epi64(a.v, _mm_set1_epi64x(i)));
+    return V(_mm256_srli_epi64(a.v, i));
 }
 
 FORCE_INLINE V operator & (const V &a, const V &b)
