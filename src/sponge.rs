@@ -57,9 +57,9 @@ impl Sponge {
         offset += write_decimal(&mut self.chars[offset..], nonce);
         offset += self.fill_sponge_single::<N>(offset, function_params);
 
-        let end = 200;
-        self.chars[offset..end].fill(0);
+        self.chars[offset..135].fill(0);
         self.chars[135] = 0x80;
+        self.chars[136..200].fill(0);
         offset
     }
 
@@ -71,11 +71,8 @@ impl Sponge {
         offset: usize,
         s: &SmallString,
     ) -> usize {
-        if N == 0 {
-            self.chars[offset..][..s.length].copy_from_slice(&s.data[..s.length]);
-        } else {
-            self.chars[offset..][..64].copy_from_slice(&s.data[..64]);
-        }
+        let n = if N == 0 { s.length } else { N };
+        self.chars[offset..][..n].copy_from_slice(&s.data[..n]);
         s.length
     }
 
@@ -100,6 +97,6 @@ fn write_decimal(out: &mut [u8], mut x: u64) -> usize {
     }
 
     let len = n - p;
-    out[..len].copy_from_slice(&buff[p..n]);
+    out[..len].copy_from_slice(&buff[p..]);
     len
 }

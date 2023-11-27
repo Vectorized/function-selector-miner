@@ -64,7 +64,7 @@ impl Not for SpongeComputeSlice {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self(unsafe { _mm256_xor_si256(self.0, _mm256_set1_epi64x(0xffffffffffffffff_u64 as i64)) })
+        Self(unsafe { _mm256_xor_si256(self.0, _mm256_set1_epi64x(-1)) })
     }
 }
 

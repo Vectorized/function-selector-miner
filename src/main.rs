@@ -35,7 +35,7 @@ fn mine<const N: usize>(
     let stopwatch = Instant::now();
 
     (0..num_threads).into_par_iter().for_each(|thread_idx| {
-        for (idx, nonce) in (thread_idx * STEP..end)
+        for (idx, nonce) in (603979776 + thread_idx * STEP..end)
             .step_by(num_threads * STEP)
             .enumerate()
         {
