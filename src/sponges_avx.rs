@@ -96,7 +96,7 @@ impl Shl<u32> for SpongeComputeSlice {
 impl Default for SpongeComputeSlice {
     #[inline(always)]
     fn default() -> Self {
-        Self(unsafe { _mm256_set_epi64x(0, 0, 0, 0) })
+        Self(unsafe { _mm256_set1_epi64x(0) })
     }
 }
 
@@ -120,12 +120,16 @@ impl SpongesAvx {
             24,
         ]
         .map(|idx| {
-            SpongeComputeSlice(_mm256_set_epi64x(
-                sponges[3].uint64s[idx] as i64,
-                sponges[2].uint64s[idx] as i64,
-                sponges[1].uint64s[idx] as i64,
-                sponges[0].uint64s[idx] as i64,
-            ))
+            SpongeComputeSlice(if idx < 17 {
+                _mm256_set_epi64x(
+                    sponges[3].uint64s[idx] as i64,
+                    sponges[2].uint64s[idx] as i64,
+                    sponges[1].uint64s[idx] as i64,
+                    sponges[0].uint64s[idx] as i64,
+                )
+            } else {
+                _mm256_set1_epi64x(0)
+            })
         });
 
         Self { compute_slices }

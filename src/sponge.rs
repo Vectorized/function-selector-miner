@@ -63,7 +63,6 @@ impl Sponge {
 
         self.chars[offset..135].fill(0);
         self.chars[135] = 0x80;
-        self.chars[136..200].fill(0);
         offset
     }
 
