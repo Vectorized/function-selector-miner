@@ -9,6 +9,7 @@ use std::env;
 use std::process;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use std::time::Instant;
 
 fn main() {
     #[cfg(target_feature = "avx2")]
@@ -66,6 +67,8 @@ fn main() {
 
     println!("Starting mining with {num_threads} threads.");
 
+    let stopwatch = Instant::now();
+
     (0..num_threads).into_par_iter().for_each(|thread_idx| {
         for (idx, nonce) in (thread_idx * STEP..end)
             .step_by(num_threads * STEP)
@@ -118,7 +121,7 @@ fn main() {
                         &function_params,
                     )
                 };
-                println!("Function found: {out}");
+                println!("Function found: {out} in {:.02?}", stopwatch.elapsed());
 
                 go.store(false, Ordering::Relaxed);
             }
