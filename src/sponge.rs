@@ -89,9 +89,9 @@ impl Sponge {
 }
 
 fn write_decimal(out: &mut [u8], mut x: u64) -> usize {
-    let mut buff = [0u8; 64];
-    let mid = 32;
-    let mut p = mid;
+    let mut buff = [0u8; 32];
+    let n = 32;
+    let mut p = n;
 
     while x != 0 {
         p -= 1;
@@ -99,7 +99,7 @@ fn write_decimal(out: &mut [u8], mut x: u64) -> usize {
         x /= 10;
     }
 
-    let len = mid - p;
-    out[..len].copy_from_slice(&buff[p..mid]);
+    let len = n - p;
+    out[..len].copy_from_slice(&buff[p..n]);
     len
 }
