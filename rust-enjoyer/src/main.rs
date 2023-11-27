@@ -1,3 +1,4 @@
+use rayon::ThreadPoolBuilder;
 #[cfg(target_feature = "avx2")]
 use rust_enjoyer::sponges_avx::SpongesAvx;
 
@@ -57,6 +58,11 @@ fn main() {
     const STEP: usize = 4;
     #[cfg(not(target_feature = "avx2"))]
     const STEP: usize = 1;
+
+    ThreadPoolBuilder::new()
+        .num_threads(num_threads)
+        .build_global()
+        .expect("Failed to create thread pool");
 
     println!("Starting mining with {num_threads} threads.");
 
