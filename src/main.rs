@@ -128,7 +128,7 @@ fn main() {
 
     println!("Function name: {}", args[1]);
     println!("Function params: {}", args[2]);
-    println!("Target selector: {:#10x}", selector.to_be());
+    println!("Target selector: 0x{}", &(&format!("{:x}", (selector.to_be() as u64) | 0x0100000000))[1..]);
 
     let num_threads = args
         .get(4)
