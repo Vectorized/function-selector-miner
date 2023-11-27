@@ -1,8 +1,8 @@
 use rayon::ThreadPoolBuilder;
 #[cfg(target_feature = "avx2")]
-use rust_enjoyer::sponges_avx::SpongesAvx;
+use function_selector_miner::sponges_avx::SpongesAvx;
 
-use rust_enjoyer::*;
+use function_selector_miner::*;
 
 use rayon::prelude::*;
 use std::env;
