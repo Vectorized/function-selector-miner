@@ -11,19 +11,37 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 
+macro_rules! log_progress {
+    ($thread_idx:expr, $idx:expr, $mask:expr, $nonce:expr) => {
+        if $thread_idx == 0 {
+            $idx += 1;
+            if $idx & $mask == 0 {
+                println!("{} hashes done.", $nonce);
+            }
+        }
+    };
+}
+
+macro_rules! log_result_and_break {
+    ($out:expr, $stopwatch:expr, $go:expr) => {
+        println!("Function found: {} in {:.02?}", $out, $stopwatch.elapsed());
+        $go.store(false, Ordering::Relaxed);
+    };
+}
+
 fn mine<const N: usize>(
     function_name: &SmallString,
     function_params: &SmallString,
     selector: u32,
     num_threads: usize,
 ) {
-    let end = 0xfffffffff0000000usize;
+    let end = 0xfffffffff0000000u64;
     let go = AtomicBool::new(true);
 
     #[cfg(target_feature = "avx2")]
-    const STEP: usize = 4;
+    const STEP: u64 = 4;
     #[cfg(not(target_feature = "avx2"))]
-    const STEP: usize = 1;
+    const STEP: u64 = 1;
 
     ThreadPoolBuilder::new()
         .num_threads(num_threads)
@@ -35,32 +53,35 @@ fn mine<const N: usize>(
     let stopwatch = Instant::now();
 
     (0..num_threads).into_par_iter().for_each(|thread_idx| {
-        for (idx, nonce) in (thread_idx * STEP..end)
-            .step_by(num_threads * STEP)
-            .enumerate()
-        {
+        let mut idx = 0u64;
+        let mut nonce = thread_idx as u64 * STEP;
+        let step = num_threads as u64 * STEP;
+        while nonce < end {
+            nonce += step;
             if !go.load(Ordering::Relaxed) {
                 break;
             }
 
             #[cfg(not(target_feature = "avx2"))]
             {
+                log_progress!(thread_idx, idx, 0x3fffff, nonce);
+
                 let mut s0 = Sponge::default();
-                unsafe { s0.fill::<N>(&function_name, nonce as u64, &function_params) };
+                unsafe { s0.fill::<N>(&function_name, nonce, &function_params) };
 
                 if selector == unsafe { s0.compute_selectors() } {
                     let out = unsafe {
-                        s0.fill_and_get_name::<N>(&function_name, nonce as u64, &function_params)
+                        s0.fill_and_get_name::<N>(&function_name, nonce, &function_params)
                     };
-                    println!("Function found: {out} in {:.02?}", stopwatch.elapsed());
-
-                    go.store(false, Ordering::Relaxed);
+                    log_result_and_break!(out, stopwatch, go);
                 }
             }
             #[cfg(target_feature = "avx2")]
             {
+                log_progress!(thread_idx, idx, 0x1fffff, nonce);
+
                 let mut sponges =
-                    unsafe { SpongesAvx::new::<N>(&function_name, nonce as u64, &function_params) };
+                    unsafe { SpongesAvx::new::<N>(&function_name, nonce, &function_params) };
 
                 let maybe_idx = unsafe {
                     sponges
@@ -69,26 +90,19 @@ fn mine<const N: usize>(
                         .position(|&x| x == selector)
                 };
 
-                // Progress logging for thread 0
-                if thread_idx == 0 && idx & 0x1fffff == 0 {
-                    println!("{num_hashes:?} hashes done.", num_hashes = nonce);
-                }
-
                 let Some(found_idx) = maybe_idx else {
                     continue;
                 };
 
-                // we found a match
+                // Match found.
                 let out = unsafe {
                     Sponge::default().fill_and_get_name::<N>(
                         &function_name,
-                        (nonce + found_idx) as u64,
+                        nonce + found_idx as u64,
                         &function_params,
                     )
                 };
-                println!("Function found: {out} in {:.02?}", stopwatch.elapsed());
-
-                go.store(false, Ordering::Relaxed);
+                log_result_and_break!(out, stopwatch, go);
             }
         }
     });
@@ -106,7 +120,7 @@ fn main() {
         process::exit(-1);
     }
 
-    // remove any leading 0x
+    // Remove any leading 0x.
     let selector = args[3].to_lowercase();
     let selector = selector.trim_start_matches("0x");
     let selector = u32::from_str_radix(selector, 16)
