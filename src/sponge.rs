@@ -58,7 +58,7 @@ impl Sponge {
         function_params: &SmallString,
     ) -> usize {
         let mut offset = self.fill_sponge_single::<N>(0, function_name);
-        offset += write_decimal(&mut self.chars[offset..], nonce);
+        offset += write_decimal::<N>(&mut self.chars[offset..], nonce);
         offset += self.fill_sponge_single::<N>(offset, function_params);
 
         self.chars[offset..135].fill(0);
@@ -90,19 +90,59 @@ impl Sponge {
     }
 }
 
-#[inline(always)]
-fn write_decimal(out: &mut [u8], mut x: u64) -> usize {
-    let mut buff = [0u8; 32];
-    let n = 32;
-    let mut p = n;
+static DEC_DIGITS_LUT: &[u8; 200] = b"\
+0001020304050607080910111213141516171819\
+2021222324252627282930313233343536373839\
+4041424344454647484950515253545556575859\
+6061626364656667686970717273747576777879\
+8081828384858687888990919293949596979899";
 
-    while x != 0 {
-        p -= 1;
-        buff[p] = (x % 10) as u8 + b'0';
-        x /= 10;
+/// # Safety
+///
+/// This function is unsafe because it uses `copy_nonoverlapping`.
+#[inline(always)]
+unsafe fn write_decimal<const N: usize>(out: &mut [u8], mut x: u64) -> usize {
+    let mut buf = [0u8; 64];
+
+    let buf_ptr = if N == 0 {
+        buf.as_mut_ptr()
+    } else {
+        out.as_mut_ptr().add(32)
+    };
+    let lut_ptr = DEC_DIGITS_LUT.as_ptr();
+
+    let mut curr = 32;
+
+    while x >= 10000 {
+        let rem = (x % 10000) as usize;
+        x /= 10000;
+
+        let d1 = (rem / 100) << 1;
+        let d2 = (rem % 100) << 1;
+        curr -= 4;
+
+        std::ptr::copy_nonoverlapping(lut_ptr.add(d1), buf_ptr.add(curr), 2);
+        std::ptr::copy_nonoverlapping(lut_ptr.add(d2), buf_ptr.add(curr + 2), 2);
     }
 
-    let len = n - p;
-    out[..len].copy_from_slice(&buff[p..]);
-    len
+    let mut x = x as usize;
+
+    if x >= 100 {
+        let d1 = (x % 100) << 1;
+        x /= 100;
+        curr -= 2;
+        std::ptr::copy_nonoverlapping(lut_ptr.add(d1), buf_ptr.add(curr), 2);
+    }
+
+    if x < 10 {
+        curr -= 1;
+        *buf_ptr.add(curr) = (x as u8) + b'0';
+    } else {
+        let d1 = x << 1;
+        curr -= 2;
+        std::ptr::copy_nonoverlapping(lut_ptr.add(d1), buf_ptr.add(curr), 2);
+    }
+
+    std::ptr::copy_nonoverlapping(buf_ptr.add(curr), out.as_mut_ptr(), 32);
+    32 - curr
 }
