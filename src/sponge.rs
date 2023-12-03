@@ -90,8 +90,7 @@ impl Sponge {
     }
 }
 
-static DEC_DIGITS_LUT: &[u8; 200] = 
-b"0001020304050607080910111213141516171819\
+static DEC_DIGITS_LUT: &[u8; 200] = b"0001020304050607080910111213141516171819\
 2021222324252627282930313233343536373839\
 4041424344454647484950515253545556575859\
 6061626364656667686970717273747576777879\
@@ -100,9 +99,13 @@ b"0001020304050607080910111213141516171819\
 #[inline(always)]
 fn write_decimal<const N: usize>(out: &mut [u8], mut x: u64) -> usize {
     unsafe {
-        let mut buf = [0u8;64];
-        
-        let buf_ptr = if N == 0 { buf.as_mut_ptr() } else { out.as_mut_ptr().add(32) };
+        let mut buf = [0u8; 64];
+
+        let buf_ptr = if N == 0 {
+            buf.as_mut_ptr()
+        } else {
+            out.as_mut_ptr().add(32)
+        };
         let lut_ptr = DEC_DIGITS_LUT.as_ptr();
 
         let mut curr = 32;
