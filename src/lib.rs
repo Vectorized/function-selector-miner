@@ -5,8 +5,6 @@ pub mod sponges_avx;
 
 pub use small_string::*;
 pub use sponge::*;
-mod error;
-pub use error::MiningError;
 use std::ops::{BitAnd, BitOr, BitXor, BitXorAssign, Not, Shl, Shr};
 
 #[inline(always)]
