@@ -10,7 +10,6 @@ use std::process;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
-
 macro_rules! log_progress {
     ($thread_idx:expr, $idx:expr, $mask:expr, $nonce:expr) => {
         if $thread_idx == 0 {
@@ -147,10 +146,12 @@ fn main() {
         &(&format!("{:x}", (selector.to_be() as u64) | 0x0100000000))[1..]
     );
 
-    let num_threads = args
-        .get(4)
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or_else(|| num_cpus::get());
+    let num_threads: usize = match args.get(4) {
+        Some(value) => value
+            .parse::<usize>()
+            .expect("Failed to parse number of threads"),
+        None => num_cpus::get(), // If args[4] is None, use the default value
+    };
 
     if function_name.length <= 64 && function_params.length <= 64 {
         mine::<64>(&function_name, &function_params, selector, num_threads);
